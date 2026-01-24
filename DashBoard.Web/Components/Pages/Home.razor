@@ -1,0 +1,58 @@
+﻿@page "/"
+@using MudBlazor
+@inherits LayoutComponentBase
+@using DashBoard.Lib.Strings
+
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+<MudGrid>
+    <MudItem xs="12" >
+        <MudDrawer @bind-Open="@_openStart" Anchor="Anchor.Start" Elevation="0" Variant="@DrawerVariant.Persistent">
+            <MudDrawerHeader >
+                <MudText  Typo="Typo.h6">@Departs.Departsfirst</MudText>
+            </MudDrawerHeader>
+            <MudNavMenu>
+                <MudNavLink Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Store">Store</MudNavLink>
+                <MudNavLink Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.LocalLibrary">Library</MudNavLink>
+                <MudNavLink Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Forum">Community</MudNavLink>
+            </MudNavMenu>
+        </MudDrawer>
+        <MudDrawer @bind-Open="@_openEnd" Fixed="false" Anchor="Anchor.End" Elevation="0" Variant="@DrawerVariant.Persistent">
+            <MudDrawerHeader>
+                <MudText Typo="Typo.h6">@Departs.DepartsSecond</MudText>
+            </MudDrawerHeader>
+            <MudNavMenu>
+                <MudNavLink Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.AccountBox">@Departs.Robots</MudNavLink>
+                <MudNavLink Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.ShoppingCart">@Departs.INS</MudNavLink>
+                <MudNavLink Match="NavLinkMatch.All" Icon="">@Departs.overflights</MudNavLink>
+            </MudNavMenu>
+        </MudDrawer>
+        <div class="d-flex justify-center align-center mud-height-full">
+            <MudButton Color="Color.Inherit" OnClick="@ToggleStartDrawer" StartIcon="@(Rtl ? Icons.Material.Filled.East : Icons.Material.Filled.West)" Class="mx-2">@verbs.chooshe @Departs.deps @Departs.Departsfirst1</MudButton>
+            <MudButton Color="Color.Inherit" OnClick="@ToggleEndDrawer" EndIcon="@(Rtl ? Icons.Material.Filled.West : Icons.Material.Filled.East)" Class="mx-2">@verbs.chooshe @Departs.deps @Departs.DepartsSecond</MudButton>
+        </div>
+    
+    </MudItem>
+
+</MudGrid>
+
+@code
+{
+    private bool _openStart = false;
+    private bool _openEnd = false;
+
+    [CascadingParameter]
+    public bool Rtl { get; set; }
+
+    private void ToggleStartDrawer()
+    {
+        _openStart = !_openStart;
+    }
+
+    private void ToggleEndDrawer()
+    {
+        _openEnd = !_openEnd;
+    }
+}
