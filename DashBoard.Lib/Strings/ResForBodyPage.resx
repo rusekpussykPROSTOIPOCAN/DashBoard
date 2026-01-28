@@ -117,28 +117,22 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="Departsfirst" xml:space="preserve">
-    <value>Аналитика</value>
+  <data name="FPTitle" xml:space="preserve">
+    <value>Дашборды статистики по цифровым продуктам</value>
   </data>
-  <data name="DepartsSecond" xml:space="preserve">
-    <value>ДКН</value>
+  <data name="Month" xml:space="preserve">
+    <value>Месяц</value>
   </data>
-  <data name="Robots" xml:space="preserve">
-    <value>Роботы</value>
+  <data name="Period" xml:space="preserve">
+    <value>Выбрать период</value>
   </data>
-  <data name="INS" xml:space="preserve">
-    <value>ИНС</value>
+  <data name="Qartal" xml:space="preserve">
+    <value>Квартал</value>
   </data>
-  <data name="overflights" xml:space="preserve">
-    <value>Облеты</value>
+  <data name="Table" xml:space="preserve">
+    <value>Загрузить таблицу</value>
   </data>
-  <data name="Departsfirst1" xml:space="preserve">
-    <value>Аналитики</value>
-  </data>
-  <data name="deps" xml:space="preserve">
-    <value>отдел </value>
-  </data>
-  <data name="Home" xml:space="preserve">
-    <value>Главная страница отдела</value>
+  <data name="Year" xml:space="preserve">
+    <value>Год</value>
   </data>
 </root>

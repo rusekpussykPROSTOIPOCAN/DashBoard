@@ -1,0 +1,43 @@
+﻿@page "/homeDKN"
+@inject IDialogService DialogService
+
+<PageTitle>@Departs.DepartsSecond</PageTitle>
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudGrid>
+        <MudItem xs="12" Class="mb-4">
+           <MudText Align="Align.Center"  Typo="Typo.h5">@ResForBodyPage.FPTitle</MudText>
+        </MudItem>
+        <MudItem sm="3" xs="6">
+            <MudButton  StartIcon="@Icons.Material.Filled.TableChart" IconColor="Color.Success">@ResForBodyPage.Table</MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+                <MudDateRangePicker Class="mr-15" PickerVariant="PickerVariant.Inline" Modal="false" />
+        </MudItem>
+        
+        <MudItem sm="3" xs="6">
+           
+            <MudButton @onclick="PeriodFilter" Variant="Variant.Filled" Color="Color.Primary">
+                @ResForBodyPage.Period
+            </MudButton>
+        </MudItem>
+        
+    </MudGrid>
+   
+</MudContainer>
+@code {
+    private bool _editable = true;
+    private bool _clearable = true;
+    private DateRange _dateRange { get; set; }
+
+    private async Task PeriodFilter()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var dialoge = await DialogService.ShowAsync<DialogPer>($"{@ResForBodyPage.Period}",options);
+        StateHasChanged();
+        var changedPeriod = await dialoge.Result;
+        if(changedPeriod.Canceled){ StateHasChanged(); }
+        else{ StateHasChanged(); }
+
+    }
+   
+}

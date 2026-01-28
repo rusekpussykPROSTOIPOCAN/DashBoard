@@ -12,6 +12,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Departs.resx</DependentUpon>
     </Compile>
+    <Compile Update="Strings\ResForBodyPage.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ResForBodyPage.resx</DependentUpon>
+    </Compile>
     <Compile Update="Strings\verbs.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -23,6 +28,10 @@
     <EmbeddedResource Update="Strings\Departs.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Departs.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Strings\ResForBodyPage.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>ResForBodyPage.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Update="Strings\verbs.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>

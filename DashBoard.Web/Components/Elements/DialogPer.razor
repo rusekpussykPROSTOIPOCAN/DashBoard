@@ -1,0 +1,90 @@
+﻿<MudDialog>
+    <DialogContent>
+        <MudSelect T="string" Label="@ResForBodyPage.Year" @bind-Value="_selectedYear">
+            <MudSelectItem Value="@("2025")" />
+         
+            <MudSelectItem Value="@("2024")" />
+            <MudSelectItem Value="@("2023")" />
+        </MudSelect>
+        <MudSelect T="string" Label="@ResForBodyPage.Qartal" @bind-Value="_selectedQuarter">
+         
+            <MudSelectItem Value="@("1")" />
+            <MudSelectItem Value="@("2")" />
+            <MudSelectItem Value="@("3")" />
+            <MudSelectItem Value="@("4")" />
+        </MudSelect>
+        <MudSelect T="string" Label="@ResForBodyPage.Month" @bind-Value="_selectedMonth">
+           
+            <MudSelectItem Value="@("1")" />
+            <MudSelectItem Value="@("2")" />
+            <MudSelectItem Value="@("3")" />
+            <MudSelectItem Value="@("4")" />
+           
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Отмена</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">OK</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string _selectedYear = "";
+    private string _selectedQuarter = "";
+    private string _selectedMonth = "";
+    private class Periods
+    {
+        public string Year { get; set; }
+        public string Quarter { get; set; }
+        public string Month { get; set; }
+    }
+    [Inject]
+    private IDialogService DialogService { get; set; } // for MessageBox
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+    private void Submit()
+    {
+        var result = new Periods
+        {
+            Year = _selectedYear,
+            Quarter = _selectedQuarter,
+            Month = _selectedMonth
+        };
+
+        MudDialog.Close(DialogResult.Ok(result));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs args)
+    {
+        var result = new Periods
+        {
+            Year = _selectedYear,
+            Quarter = _selectedQuarter,
+            Month = _selectedMonth
+        };
+        switch (args.Key)
+        {
+            case "Enter":
+            case "NumpadEnter":
+                if (string.IsNullOrEmpty(result.Year) || string.IsNullOrEmpty(result.Month) || string.IsNullOrEmpty(result.Quarter))
+                {
+                    await DialogService.ShowMessageBox(
+                        "Sorry",
+                        @"You must either select a coffee and close with Enter or cancel with Escape!",
+                        yesText: "Got it",
+                        options: new DialogOptions() { CloseOnEscapeKey = true });
+                    return;
+                }
+                Submit();
+                break;
+        }
+    }
+ 
+   
+    
+
+   
+}

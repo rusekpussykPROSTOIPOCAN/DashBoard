@@ -1,0 +1,31 @@
+﻿@inherits LayoutComponentBase
+
+<MudLayout>
+
+<MudPaper Height="200px" Style="overflow:hidden; position:relative;">
+    <MudDrawerContainer Class="mud-height-full">
+            <MudDrawer Style="height:fit-content" @bind-Open="@_open" Fixed="false" Elevation="1" Variant="@DrawerVariant.Mini" OpenMiniOnHover="true" Breakpoint="Breakpoint.None">
+               <NavMenu/>
+        </MudDrawer>
+        <div class="d-flex justify-center align-center mud-height-full">
+            <MudButton OnClick="@ToggleDrawer" Color="Color.Primary">Toggle</MudButton>
+        </div>
+    </MudDrawerContainer>
+</MudPaper>
+<MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="mt-12">
+        @Body
+    </MudContainer>
+</MudMainContent>
+</MudLayout>
+@code
+{
+    private bool _open = false;
+
+    private void ToggleDrawer()
+    {
+        _open = !_open;
+    }
+}
+
+

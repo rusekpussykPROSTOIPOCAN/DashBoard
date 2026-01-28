@@ -22,14 +22,14 @@ namespace DashBoard.Lib.Strings {
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "18.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    public class Departs {
+    public class ResForBodyPage {
         
         private static global::System.Resources.ResourceManager resourceMan;
         
         private static global::System.Globalization.CultureInfo resourceCulture;
         
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal Departs() {
+        internal ResForBodyPage() {
         }
         
         /// <summary>
@@ -39,7 +39,7 @@ namespace DashBoard.Lib.Strings {
         public static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("DashBoard.Lib.Strings.Departs", typeof(Departs).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("DashBoard.Lib.Strings.ResForBodyPage", typeof(ResForBodyPage).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -61,74 +61,56 @@ namespace DashBoard.Lib.Strings {
         }
         
         /// <summary>
-        ///   Ищет локализованную строку, похожую на Аналитика.
+        ///   Ищет локализованную строку, похожую на Дашборды статистики по цифровым продуктам.
         /// </summary>
-        public static string Departsfirst {
+        public static string FPTitle {
             get {
-                return ResourceManager.GetString("Departsfirst", resourceCulture);
+                return ResourceManager.GetString("FPTitle", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Ищет локализованную строку, похожую на Аналитики.
+        ///   Ищет локализованную строку, похожую на Месяц.
         /// </summary>
-        public static string Departsfirst1 {
+        public static string Month {
             get {
-                return ResourceManager.GetString("Departsfirst1", resourceCulture);
+                return ResourceManager.GetString("Month", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Ищет локализованную строку, похожую на ДКН.
+        ///   Ищет локализованную строку, похожую на Выбрать период.
         /// </summary>
-        public static string DepartsSecond {
+        public static string Period {
             get {
-                return ResourceManager.GetString("DepartsSecond", resourceCulture);
+                return ResourceManager.GetString("Period", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Ищет локализованную строку, похожую на отдел .
+        ///   Ищет локализованную строку, похожую на Квартал.
         /// </summary>
-        public static string deps {
+        public static string Qartal {
             get {
-                return ResourceManager.GetString("deps", resourceCulture);
+                return ResourceManager.GetString("Qartal", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Ищет локализованную строку, похожую на Главная страница отдела.
+        ///   Ищет локализованную строку, похожую на Загрузить таблицу.
         /// </summary>
-        public static string Home {
+        public static string Table {
             get {
-                return ResourceManager.GetString("Home", resourceCulture);
+                return ResourceManager.GetString("Table", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Ищет локализованную строку, похожую на ИНС.
+        ///   Ищет локализованную строку, похожую на Год.
         /// </summary>
-        public static string INS {
+        public static string Year {
             get {
-                return ResourceManager.GetString("INS", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Ищет локализованную строку, похожую на Облеты.
-        /// </summary>
-        public static string overflights {
-            get {
-                return ResourceManager.GetString("overflights", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Ищет локализованную строку, похожую на Роботы.
-        /// </summary>
-        public static string Robots {
-            get {
-                return ResourceManager.GetString("Robots", resourceCulture);
+                return ResourceManager.GetString("Year", resourceCulture);
             }
         }
     }
