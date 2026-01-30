@@ -1,7 +1,64 @@
 ﻿@page "/robot"
+@inject IDialogService DialogService
+
 <PageTitle>@Departs.Robots</PageTitle>
-<h3>RobotPage</h3>
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudGrid>  
+        <MudItem sm="3" xs="6">
+            <MudButton @onclick="PeriodFilter" Variant="Variant.Filled" Color="Color.Primary">
+                @ResForBodyPage.Period
+            </MudButton>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudDateRangePicker Class="mr-15" PickerVariant="PickerVariant.Inline" Modal="false" />
+        </MudItem>
+        <MudItem  sm="6" xs="12">
+            <MudTable Items="@GetElements()">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">@ResForBodyPage.Choose</MudText>
+                    <MudSpacer />
+                    <MudTextField @bind-Value="_searchTerm" Placeholder="Search" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" Immediate="true"></MudTextField>
+                </ToolBarContent>
 
+                <HeaderContent>
+                    <MudTh>@ResForBodyPage.Name</MudTh>
+                </HeaderContent>
+
+                <RowTemplate>
+                    <MudTd DataLabel="Name">
+                        <MudHighlighter Text="@context.Name" HighlightedText="@_searchTerm" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
 @code {
+    private string _searchTerm = "";
+    private IEnumerable<Element> _elements = new List<Element> {  new Element { Name = "a"}, new Element {Name = "b"}
+     };
 
+
+    protected override async Task OnInitializedAsync()
+    {
+
+    }
+
+    private IEnumerable<Element> GetElements() => _elements.Where(e => e.Name.Contains(_searchTerm));
+    private async Task PeriodFilter()
+    {
+
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var dialoge = await DialogService.ShowAsync<DialogPer>($"{@ResForBodyPage.Period}", options);
+        StateHasChanged();
+        var changedPeriod = await dialoge.Result;
+        if (changedPeriod.Canceled) { StateHasChanged(); }
+        else { StateHasChanged(); }
+
+    }
+
+    private class Element
+    {
+        public string Name { get; set; }
+    }
 }

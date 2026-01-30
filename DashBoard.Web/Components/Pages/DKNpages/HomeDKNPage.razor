@@ -3,28 +3,71 @@
 
 <PageTitle>@Departs.DepartsSecond</PageTitle>
 <MudContainer MaxWidth="MaxWidth.Large">
-    <MudGrid>
+    <MudGrid Justify="Justify.Center">
         <MudItem xs="12" Class="mb-4">
-           <MudText Align="Align.Center"  Typo="Typo.h5">@ResForBodyPage.FPTitle</MudText>
+           <MudText Align="Align.Center" Typo="Typo.h5">@ResForBodyPage.FPTitle</MudText>
+        </MudItem>
+        <MudItem class="ml-20" sm="3" xs="6">
+            <MudButton StartIcon="@Icons.Material.Filled.TableChart" IconColor="Color.Success">@ResForBodyPage.Table</MudButton>
         </MudItem>
         <MudItem sm="3" xs="6">
-            <MudButton  StartIcon="@Icons.Material.Filled.TableChart" IconColor="Color.Success">@ResForBodyPage.Table</MudButton>
-        </MudItem>
-        <MudItem xs="12" sm="6">
-                <MudDateRangePicker Class="mr-15" PickerVariant="PickerVariant.Inline" Modal="false" />
+                <MudDateRangePicker PickerVariant="PickerVariant.Inline" Modal="false" />
         </MudItem>
         
-        <MudItem sm="3" xs="6">
+        <MudItem class="ml-20" sm="3" xs="6">
            
             <MudButton @onclick="PeriodFilter" Variant="Variant.Filled" Color="Color.Primary">
                 @ResForBodyPage.Period
             </MudButton>
         </MudItem>
-        
+       
+        <MudItem Class="mr-15" sm="3" xs="6">
+            <MudChart  ChartType="ChartType.Donut" Width="300px" Height="300px" InputData="@data" InputLabels="@labels">
+                <CustomGraphics>
+                    <text class="donut-inner-text" x="50%" y="35%" dominant-baseline="middle" text-anchor="middle" fill="black" font-family="Helvetica" font-size="20">Total</text>
+                    <text class="donut-inner-text" x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="black" font-family="Helvetica" font-size="50">@data.Sum().ToString()</text>
+                </CustomGraphics>
+            </MudChart>
+        </MudItem>
+        <MudItem class="ml-15" sm="3" xs="6">
+           
+            <MudChart  ChartType="ChartType.Donut" Width="300px" Height="300px" InputData="@data" InputLabels="@labels">
+                <CustomGraphics>
+                    <text class="donut-inner-text" x="50%" y="35%" dominant-baseline="middle" text-anchor="middle" fill="black" font-family="Helvetica" font-size="20">Total</text>
+                    <text class="donut-inner-text" x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="black" font-family="Helvetica" font-size="50">@data.Sum().ToString()</text>
+                </CustomGraphics>
+            </MudChart>
+
+        </MudItem>
+      
+        <MudItem xs="12" >
+            <MudChart ChartType="ChartType.Line" ChartSeries="@Serieses" XAxisLabels="@XAxisLabelses" Width="100%" Height="350" ></MudChart>
+
+        </MudItem>
     </MudGrid>
    
 </MudContainer>
 @code {
+
+   
+    public List<ChartSeries> Serieses = new List<ChartSeries>()
+    {
+        new ChartSeries() { Name = "ЕЦХД", Data = new double[] { 90, 79, 72, 69, 62, 62, 55, 65, 70 } },
+        new ChartSeries() { Name = "БПЛА", Data = new double[] { 35, 41, 35, 51, 49, 62, 69, 91, 148 } },
+        new ChartSeries() { Name = "Космос", Data = new double[] { 80, 23, 35, 62, 49, 12, 100, 91, 18 } },
+    };
+    public string[] XAxisLabelses = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep" };
+
+
+    public List<ChartSeries> Series = new List<ChartSeries>()
+    {
+        new ChartSeries() { Name = "Робот 1", Data = new double[] { 40, 20, 25, 27, 46, 60, 48, 80, 15 } },
+        new ChartSeries() { Name = "Робот 2", Data = new double[] { 19, 24, 35, 13, 28, 15, 13, 16, 31 } },
+        new ChartSeries() { Name = "Робот 3", Data = new double[] { 8, 6, 11, 13, 4, 16, 10, 16, 18 } },
+    };
+    public string[] XAxisLabels = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep" };
+    public double[] data = { 25, 77, 28};
+    public string[] labels = { "Захламление", "Стройка без PC", "Отсутствие ЗПО" };
     private bool _editable = true;
     private bool _clearable = true;
     private DateRange _dateRange { get; set; }

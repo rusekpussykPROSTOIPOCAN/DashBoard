@@ -61,6 +61,15 @@ namespace DashBoard.Lib.Strings {
         }
         
         /// <summary>
+        ///   Ищет локализованную строку, похожую на Выбрать робота.
+        /// </summary>
+        public static string Choose {
+            get {
+                return ResourceManager.GetString("Choose", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Ищет локализованную строку, похожую на Дашборды статистики по цифровым продуктам.
         /// </summary>
         public static string FPTitle {
@@ -75,6 +84,15 @@ namespace DashBoard.Lib.Strings {
         public static string Month {
             get {
                 return ResourceManager.GetString("Month", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на Название.
+        /// </summary>
+        public static string Name {
+            get {
+                return ResourceManager.GetString("Name", resourceCulture);
             }
         }
         
