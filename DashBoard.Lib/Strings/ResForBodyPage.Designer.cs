@@ -61,6 +61,15 @@ namespace DashBoard.Lib.Strings {
         }
         
         /// <summary>
+        ///   Ищет локализованную строку, похожую на БПЛА.
+        /// </summary>
+        public static string BPLA {
+            get {
+                return ResourceManager.GetString("BPLA", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Ищет локализованную строку, похожую на Выбрать робота.
         /// </summary>
         public static string Choose {
@@ -70,11 +79,29 @@ namespace DashBoard.Lib.Strings {
         }
         
         /// <summary>
+        ///   Ищет локализованную строку, похожую на ЕЦХД.
+        /// </summary>
+        public static string ECHD {
+            get {
+                return ResourceManager.GetString("ECHD", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Ищет локализованную строку, похожую на Дашборды статистики по цифровым продуктам.
         /// </summary>
         public static string FPTitle {
             get {
                 return ResourceManager.GetString("FPTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на КИНС.
+        /// </summary>
+        public static string KINS {
+            get {
+                return ResourceManager.GetString("KINS", resourceCulture);
             }
         }
         
@@ -111,6 +138,15 @@ namespace DashBoard.Lib.Strings {
         public static string Qartal {
             get {
                 return ResourceManager.GetString("Qartal", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на Космос.
+        /// </summary>
+        public static string Space {
+            get {
+                return ResourceManager.GetString("Space", resourceCulture);
             }
         }
         

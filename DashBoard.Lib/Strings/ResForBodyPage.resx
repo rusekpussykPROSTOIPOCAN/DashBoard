@@ -117,8 +117,14 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="BPLA" xml:space="preserve">
+    <value>БПЛА</value>
+  </data>
   <data name="Choose" xml:space="preserve">
     <value>Выбрать робота</value>
+  </data>
+  <data name="ECHD" xml:space="preserve">
+    <value>ЕЦХД</value>
   </data>
   <data name="FPTitle" xml:space="preserve">
     <value>Дашборды статистики по цифровым продуктам</value>
@@ -128,6 +134,9 @@
   </data>
   <data name="Name" xml:space="preserve">
     <value>Название</value>
+  </data>
+  <data name="Space" xml:space="preserve">
+    <value>Космос</value>
   </data>
   <data name="Period" xml:space="preserve">
     <value>Выбрать период</value>
@@ -140,5 +149,8 @@
   </data>
   <data name="Year" xml:space="preserve">
     <value>Год</value>
+  </data>
+  <data name="KINS" xml:space="preserve">
+    <value>КИНС</value>
   </data>
 </root>

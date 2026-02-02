@@ -39,4 +39,9 @@
     </EmbeddedResource>
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Humanizer" Version="3.0.1" />
+    <PackageReference Include="Humanizer.Core.ru" Version="3.0.1" />
+  </ItemGroup>
+
 </Project>
