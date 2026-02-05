@@ -44,4 +44,8 @@
     <PackageReference Include="Humanizer.Core.ru" Version="3.0.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Models\" />
+  </ItemGroup>
+
 </Project>
