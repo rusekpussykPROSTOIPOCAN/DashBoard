@@ -2,12 +2,12 @@
     <DialogContent>
         <MudSelect T="string" Label="@ResForBodyPage.Year" @bind-Value="_selectedYear">
             <MudSelectItem Value="@("2025")" />
-         
             <MudSelectItem Value="@("2024")" />
             <MudSelectItem Value="@("2023")" />
         </MudSelect>
         <MudSelect T="string" Label="@ResForBodyPage.Qartal" @bind-Value="_selectedQuarter">
          
+            <MudSelectItem Value="@("все время")" />
             <MudSelectItem Value="@("1")" />
             <MudSelectItem Value="@("2")" />
             <MudSelectItem Value="@("3")" />
@@ -15,6 +15,7 @@
         </MudSelect>
         <MudSelect T="string" Label="@ResForBodyPage.Month" @bind-Value="_selectedMonth">
            
+            <MudSelectItem Value="@("все время")" />
             <MudSelectItem Value="@("1")" />
             <MudSelectItem Value="@("2")" />
             <MudSelectItem Value="@("3")" />
