@@ -1,6 +1,176 @@
 ﻿@page "/FormAnalityc"
+<MudContainer MaxWidth="MaxWidth.Medium">
+    <MudItem>
+        <MudAutocomplete T="string" Label="Источник" @bind-Value="value2"
+                         @bind-Value:after="OnAfterValueChanged"
+                         SearchFunc="@Search2"
+                         ResetValueOnEmptyText="@resetValueOnEmptyText"
+                         CoerceText="@coerceText" CoerceValue="@coerceValue"
+                         SelectValueOnTab="@selectedOnTab"
+                         AdornmentIcon="@Icons.Material.Filled.Search"
+                         AdornmentColor="Color.Primary" />
+    </MudItem>
+    @if (showOtherField)
+    {
 
+        <MudItem>
+            <MudTextField @bind-Value="TextValue" Label="Впишите источник" Required="true" RequiredError="Обазательно для заполнения!" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    }
+    <MudItem Class="mt-5 d-flex justify-center flex-grow-1 gap-4">
+        <MudTextField Error="@ErrorPer" @bind-Value="perimetr" @bind-Value:after="OnAfterPerimeter" Label="Общий периметр" />
+        <MudTextField Error="@ErrorPer" @bind-Value="complete" @bind-Value:after="OnAfterPerimeter" Label="Выполнено" />
+        <MudTextField Error="@ErrorPer" @bind-Value:after="OnEditRemained" @bind-Value="remained" Label="Осталось" />
+    </MudItem>
+    <MudItem Class="mt-5 d-flex justify-center flex-grow-1 gap-4">
+        <MudTextField Error="@ErrorVio" @bind-Value="violations" @bind-Value:after="OnAfteGIN" Label="Нарушений за неделю" />
+        <MudTextField Error="@ErrorVio" @bind-Value="NewViolations" @bind-Value:after="OnAfteGIN" Label="Новые" />
+        <MudTextField Error="@ErrorVio" @bind-Value:after="OnAfterViolation" @bind-Value="OldViolations" Label="Ранее выявленые ГИН" />
+    </MudItem>
+    <MudItem>
+        <MudAutocomplete T="string" Label="Нарушения" @bind-Value="value3"
+                         @bind-Value:after="OnAfterValue"
+                         SearchFunc="@Search3"
+                         ResetValueOnEmptyText="@resetValueOnEmptyText"
+                         CoerceText="@coerceText" CoerceValue="@coerceValue"
+                         SelectValueOnTab="@selectedOnTab"
+                         AdornmentIcon="@Icons.Material.Filled.Search"
+                         AdornmentColor="Color.Primary" />
+    </MudItem>
+    @if (showOtherField1)
+    {
+
+        <MudItem>
+            <MudTextField @bind-Value="TextValue1" Label="Нарушение" Required="true" RequiredError="Обазательно для заполнения!" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    }
+</MudContainer>
 
 @code {
+    public string TextValue { get; set; }
+    public string TextValue1 { get; set; }
 
+    uint violations = 0;
+    uint NewViolations = 0;
+    uint OldViolations = 0;
+
+    uint perimetr = 0;
+    uint complete = 0;
+    uint remained = 0;
+    int weekInt;
+    private bool showOtherField = false;
+    private bool showOtherField1 = false;
+    private bool ErrorPer = false;
+    private bool ErrorVio = false;
+    private bool resetValueOnEmptyText;
+    private bool coerceText;
+    private bool coerceValue;
+    private bool selectedOnTab;
+    private string value2;
+    private string value3;
+    private string[] states =
+    {
+        "другое",
+       "источник 1","источник 2","источник 3","источник 4"
+    };
+    private string[] states1 =
+    {
+        "другое",
+       "Нарушение:? Статья:?"
+    };
+    private async Task OnEditRemained()
+    {
+        if (remained > perimetr)
+        {
+            ErrorPer = true;
+        }
+        else
+        {
+            ErrorPer = false;
+            complete = perimetr - remained;
+        }
+    }
+    private async Task OnAfterPerimeter()
+    {
+        if (complete > perimetr)
+        {
+            ErrorPer = true;
+        }
+        else
+        {
+            ErrorPer = false;
+            remained = perimetr - complete;
+        }
+    }
+    private async Task OnAfterViolation()
+    {
+        if (OldViolations > violations)
+        {
+            ErrorVio = true;
+        }
+        else
+        {
+            ErrorVio = false;
+            NewViolations = violations - OldViolations;
+        }
+    }
+    private async Task OnAfteGIN()
+    {
+        if (NewViolations > violations)
+        {
+            ErrorVio = true;
+        }
+        else
+        {
+            ErrorVio = false;
+            OldViolations = violations - NewViolations;
+        }
+    }
+    private async Task OnAfterValueChanged()
+    {
+        if (value2 == "другое")
+        {
+            showOtherField = true;
+
+        }
+        else
+        {
+            showOtherField = false;
+
+        }
+    }
+    private async Task OnAfterValue()
+    {
+        if (value3 == "другое")
+        {
+            showOtherField1 = true;
+
+        }
+        else
+        {
+            showOtherField1 = false;
+
+        }
+    }
+
+    private async Task<IEnumerable<string>> Search2(string value, CancellationToken token)
+    {
+
+        await Task.Delay(5, token);
+
+
+        if (string.IsNullOrEmpty(value))
+            return new string[0];
+        return states.Where(x => x.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+    private async Task<IEnumerable<string>> Search3(string value, CancellationToken token)
+    {
+
+        await Task.Delay(5, token);
+
+
+        if (string.IsNullOrEmpty(value))
+            return new string[0];
+        return states1.Where(x => x.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
 }
