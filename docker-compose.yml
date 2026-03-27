@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  # Контейнер с базой данных Postgres
+  postgres_db:
+    image: postgres:15
+    container_name: dashboard_postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=mysecretpassword
+      - POSTGRES_DB=DashBoardDb
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - dashboard_network
+
+  # Контейнер с Blazor Web приложением
+  dashboard_web:
+    build:
+      context: . # Контекст - корневая папка (там где .sln)
+      dockerfile: DashBoard.Web/Dockerfile # Путь к Dockerfile
+    container_name: dashboard_web
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=postgres_db;Port=5432;Database=DashBoardDb;Username=postgres;Password=mysecretpassword;
+      - ASPNETCORE_ENVIRONMENT=Production
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres_db
+    restart: unless-stopped
+    networks:
+      - dashboard_network
+
+  # Опционально: если нужно запустить API
+  # dashboard_api:
+  #   build:
+  #     context: .
+  #     dockerfile: DashBoard.Api/Dockerfile
+  #   container_name: dashboard_api
+  #   environment:
+  #     - ConnectionStrings__DefaultConnection=Host=postgres_db;Port=5432;Database=DashBoardDb;Username=postgres;Password=mysecretpassword;
+  #     - ASPNETCORE_ENVIRONMENT=Production
+  #   ports:
+  #     - "8081:80"
+  #   depends_on:
+  #     - postgres_db
+  #   restart: unless-stopped
+  #   networks:
+  #     - dashboard_network
+
+volumes:
+  postgres_data:
+
+networks:
+  dashboard_network:
+    driver: bridge
