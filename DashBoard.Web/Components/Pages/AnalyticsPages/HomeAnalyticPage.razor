@@ -78,7 +78,7 @@
         </MudItem>
         <MudItem Class=" d-flex justify-center flex-grow-1 gap-4" >
 
-            <MudChart ChartType="ChartType.Pie" InputData="@data" @bind-SelectedIndex="Index" InputLabels="@labels" Width="300px" Height="300px" />
+            <MudChart ChartType="ChartType.Pie" ChartSeries="@data.AsChartDataSet()" @bind-SelectedIndex="Index" ChartLabels="@labels" Width="100%" Height="300px" />
         </MudItem>
 
 

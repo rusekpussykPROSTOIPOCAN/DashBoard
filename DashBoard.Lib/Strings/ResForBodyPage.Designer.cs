@@ -160,6 +160,33 @@ namespace DashBoard.Lib.Strings {
         }
         
         /// <summary>
+        ///   Ищет локализованную строку, похожую на Общее количество + кол-во отработанных заявок за месяц.
+        /// </summary>
+        public static string tokens {
+            get {
+                return ResourceManager.GetString("tokens", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на Выявленные нарушения по округам.
+        /// </summary>
+        public static string viols {
+            get {
+                return ResourceManager.GetString("viols", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на Статистика нарушений за месяц по исполненным заявкам.
+        /// </summary>
+        public static string viols_month {
+            get {
+                return ResourceManager.GetString("viols_month", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Ищет локализованную строку, похожую на Год.
         /// </summary>
         public static string Year {

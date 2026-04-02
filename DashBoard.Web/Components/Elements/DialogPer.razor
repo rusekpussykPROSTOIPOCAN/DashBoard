@@ -72,7 +72,7 @@
             case "NumpadEnter":
                 if (string.IsNullOrEmpty(result.Year) || string.IsNullOrEmpty(result.Month) || string.IsNullOrEmpty(result.Quarter))
                 {
-                    await DialogService.ShowMessageBox(
+                    await DialogService.ShowMessageBoxAsync(
                         "Sorry",
                         @"You must either select a coffee and close with Enter or cancel with Escape!",
                         yesText: "Got it",

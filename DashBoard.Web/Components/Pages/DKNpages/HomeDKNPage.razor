@@ -1,4 +1,5 @@
-﻿@page "/homeDKN"
+﻿@using MudBlazor.Charts;
+@page "/homeDKN"
 @inject IDialogService DialogService
 
 <PageTitle>@Departs.DepartsSecond</PageTitle>
@@ -22,27 +23,24 @@
         </MudItem>
        
         <MudItem Class="mr-15" sm="3" xs="6">
-            <MudChart  ChartType="ChartType.Donut" Width="300px" Height="300px" InputData="@data" InputLabels="@labels">
+            <MudChart ChartType="ChartType.Donut" Width="100%" Height="300px" ChartSeries="@Data.AsChartDataSet()" ChartLabels="@Labels">
                 <CustomGraphics>
-                    <text class="donut-inner-text" x="50%" y="35%" dominant-baseline="middle" text-anchor="middle" fill="black" font-family="Helvetica" font-size="20">Total</text>
-                    <text class="donut-inner-text" x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="black" font-family="Helvetica" font-size="50">@data.Sum().ToString()</text>
+                    <text class="mud-donut-text mud-typography-h3" x="50%" y="50%">@Data.Sum()</text>
                 </CustomGraphics>
             </MudChart>
         </MudItem>
         <MudItem class="ml-15" sm="3" xs="6">
            
-            <MudChart  ChartType="ChartType.Donut" Width="300px" Height="300px" InputData="@data" InputLabels="@labels">
+            <MudChart ChartType="ChartType.Donut" Width="100%" Height="300px" ChartSeries="@Data.AsChartDataSet()" ChartLabels="@Labels">
                 <CustomGraphics>
-                    <text class="donut-inner-text" x="50%" y="35%" dominant-baseline="middle" text-anchor="middle" fill="black" font-family="Helvetica" font-size="20">Total</text>
-                    <text class="donut-inner-text" x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="black" font-family="Helvetica" font-size="50">@data.Sum().ToString()</text>
+                    <text class="mud-donut-text mud-typography-h3" x="50%" y="50%">@Data.Sum()</text>
                 </CustomGraphics>
             </MudChart>
 
         </MudItem>
       
         <MudItem xs="12" >
-            <MudChart ChartType="ChartType.Line" ChartSeries="@Serieses" XAxisLabels="@XAxisLabelses" Width="100%" Height="350" ></MudChart>
-
+            
         </MudItem>
     </MudGrid>
    
@@ -50,24 +48,19 @@
 @code {
 
    
-    public List<ChartSeries> Serieses = new List<ChartSeries>()
+    private List<ChartSeries<double>> _series = new List<ChartSeries<double>>()
     {
-        new ChartSeries() { Name = "ЕЦХД", Data = new double[] { 90, 79, 72, 69, 62, 62, 55, 65, 70 } },
-        new ChartSeries() { Name = "БПЛА", Data = new double[] { 35, 41, 35, 51, 49, 62, 69, 91, 148 } },
-        new ChartSeries() { Name = "Космос", Data = new double[] { 80, 23, 35, 62, 49, 12, 100, 91, 18 } },
+        new ChartSeries<double>() { Name = "ЕЦХД", Data = new double[] { 90, 79, 72, 69, 62, 62, 55, 65, 70 } },
+        new ChartSeries<double>() { Name = "БПЛА", Data = new double[] { 35, 41, 35, 51, 49, 62, 69, 91, 148 } },
+        new ChartSeries<double>() { Name = "Космос", Data = new double[] { 80, 23, 35, 62, 49, 12, 100, 91, 18 } },
     };
     public string[] XAxisLabelses = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep" };
 
 
-    public List<ChartSeries> Series = new List<ChartSeries>()
-    {
-        new ChartSeries() { Name = "Робот 1", Data = new double[] { 40, 20, 25, 27, 46, 60, 48, 80, 15 } },
-        new ChartSeries() { Name = "Робот 2", Data = new double[] { 19, 24, 35, 13, 28, 15, 13, 16, 31 } },
-        new ChartSeries() { Name = "Робот 3", Data = new double[] { 8, 6, 11, 13, 4, 16, 10, 16, 18 } },
-    };
+ 
     public string[] XAxisLabels = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep" };
-    public double[] data = { 25, 77, 28};
-    public string[] labels = { "Захламление", "Стройка без PC", "Отсутствие ЗПО" };
+    public double[] Data = { 25, 77, 28};
+    public string[] Labels = { "Захламление", "Стройка без PC", "Отсутствие ЗПО" };
     private bool _editable = true;
     private bool _clearable = true;
     private DateRange _dateRange { get; set; }

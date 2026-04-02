@@ -153,4 +153,13 @@
   <data name="KINS" xml:space="preserve">
     <value>КИНС</value>
   </data>
+  <data name="viols" xml:space="preserve">
+    <value>Выявленные нарушения по округам</value>
+  </data>
+  <data name="tokens" xml:space="preserve">
+    <value>Общее количество + кол-во отработанных заявок за месяц</value>
+  </data>
+  <data name="viols_month" xml:space="preserve">
+    <value>Статистика нарушений за месяц по исполненным заявкам</value>
+  </data>
 </root>
