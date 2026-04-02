@@ -1,4 +1,4 @@
-namespace DashBoard.Api
+namespace DashBoard.API
 {
     public class WeatherForecast
     {
