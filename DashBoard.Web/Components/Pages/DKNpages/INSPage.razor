@@ -1,8 +1,40 @@
 ﻿@page "/INS"
 <PageTitle>@Departs.INS</PageTitle>
 <MudTabs Centered="true" SortDirection="SortDirection.Descending" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+    <MudTabPanel Text="@ResForBodyPage.AllThinks">
+        <MudDataGrid Filterable="true" Items="@elements.Take(5)" ColumnResizeMode="ResizeMode.Column">
+            <Columns>
+                <PropertyColumn Property="x => x.Key" Title="Источник" />
+                <PropertyColumn Property="x => x.Value" Title="Всего нарушений" />
+                <PropertyColumn Property="x => x.Value" Title="Новые нарушения" />
+                <PropertyColumn Property="x => x.Value" Title="Процент точности" />
+                
+            </Columns>
+        </MudDataGrid>
+    </MudTabPanel>
     <MudTabPanel Text="@ResForBodyPage.BPLA">
-        <MudText></MudText>
+        <MudGrid>
+
+        <MudItem xs="6" md="6">
+
+        <MudText Align="Align.Center">
+            Статистика нарушений по детектору «захламление»
+        </MudText>
+        <MudChart ChartType="ChartType.Pie"
+                  ChartSeries="@data.AsChartDataSet()"
+                  @bind-SelectedIndex="Index"
+                  ChartLabels="@labels"
+                  Width="100%"
+                  Height="300px" />
+        </MudItem>
+         <MudItem xs="12" md="6">           
+     <MudChart ChartType="ChartType.Bar" ChartSeries="@Series" ChartLabels="@XAxisLabels" Width="100%" Height="350px">
+    <CustomGraphics>
+        <text x="80" y="35" class="heavy">Общая статистика</text>
+    </CustomGraphics>
+    </MudChart>
+        </MudItem>
+        </MudGrid>
     </MudTabPanel>
     <MudTabPanel Text="@ResForBodyPage.ECHD">
         <MudText></MudText>
@@ -15,5 +47,19 @@
     </MudTabPanel>
 </MudTabs>
 @code {
-
+     public List<ChartSeries<double>> Series = new()
+    {
+        new() { Name = "United States", Data = new double[] { 40, 20, 25, 27, 46, 60, 48, 80, 15 } },
+        new() { Name = "Germany", Data = new double[] { 19, 24, 35, 13, 28, 15, 13, 16, 31 } },
+        new() { Name = "Sweden", Data = new double[] { 8, 6, 11, 13, 4, 16, 10, 16, 18 } },
+    };
+    public string[] XAxisLabels = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep" };
+    private int Index = 3;
+    Dictionary<int, string> elements = new Dictionary<int, string> { {1, "Uranium" }, {2,"Plutonium" }, {3,"Thorium"}, {4,"Caesium"}, {5,"Technetium"}, {6,"Promethium"},
+                        {7,"Polonium"}, {8,"Astatine"}, {9,"Radon"}, {10,"Francium"}, {11,"Radium"}, {12,"Actinium"}, {13,"Protactinium"},
+                        {14,"Neptunium"}, {15,"Americium"}, {16,"Curium"}, {17,"Berkelium"}, {18,"Californium"}, {19,"Einsteinium"}, {20,"Mudblaznium"} };
+    double[] data = { 77 };
+    string[] labels = { "Uranium", "Plutonium", "Thorium", "Caesium", "Technetium", "Promethium",
+                        "Polonium", "Astatine", "Radon", "Francium", "Radium", "Actinium", "Protactinium",
+                        "Neptunium", "Americium", "Curium", "Berkelium", "Californium", "Einsteinium", "Mudblaznium" };
 }

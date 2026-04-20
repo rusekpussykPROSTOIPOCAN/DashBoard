@@ -162,4 +162,13 @@
   <data name="viols_month" xml:space="preserve">
     <value>Статистика нарушений за месяц по исполненным заявкам</value>
   </data>
+  <data name="chartDKNsqrtAFS" xml:space="preserve">
+    <value>Площадь покрытия Москвы средствами АФС </value>
+  </data>
+  <data name="chartDKNapplicationMonth" xml:space="preserve">
+    <value>Количество отработанных заявок роботами за месяц</value>
+  </data>
+  <data name="AllThinks" xml:space="preserve">
+    <value>Общая статистика</value>
+  </data>
 </root>

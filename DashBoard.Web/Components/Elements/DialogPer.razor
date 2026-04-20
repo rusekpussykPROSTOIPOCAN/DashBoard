@@ -1,86 +1,85 @@
-﻿<MudDialog>
-    <DialogContent>
-        <MudSelect T="string" Label="@ResForBodyPage.Year" @bind-Value="_selectedYear">
-            <MudSelectItem Value="@("2025")" />
-            <MudSelectItem Value="@("2024")" />
-            <MudSelectItem Value="@("2023")" />
-        </MudSelect>
-        <MudSelect T="string" Label="@ResForBodyPage.Qartal" @bind-Value="_selectedQuarter">
-         
-            <MudSelectItem Value="@("все время")" />
-            <MudSelectItem Value="@("1")" />
-            <MudSelectItem Value="@("2")" />
-            <MudSelectItem Value="@("3")" />
-            <MudSelectItem Value="@("4")" />
-        </MudSelect>
-        <MudSelect T="string" Label="@ResForBodyPage.Month" @bind-Value="_selectedMonth">
-           
-            <MudSelectItem Value="@("все время")" />
-            <MudSelectItem Value="@("1")" />
-            <MudSelectItem Value="@("2")" />
-            <MudSelectItem Value="@("3")" />
-            <MudSelectItem Value="@("4")" />
-           
-        </MudSelect>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="Cancel">Отмена</MudButton>
-        <MudButton Color="Color.Primary" OnClick="Submit">OK</MudButton>
-    </DialogActions>
-</MudDialog>
+﻿<MudButton Variant="Variant.Filled" OnClick="ToggleFilter">
+    Выбрать период
+</MudButton>
+<MudPopover Open="_open" AnchorOrigin="Origin.BottomCenter">
+<MudPaper Class="pa-4">
 
+        <MudSelect T="int?" Label="@ResForBodyPage.Year" @bind-Value="_year">
+        <MudSelectItem T="int?" Value="@((int?)null)">Все</MudSelectItem>
+        <MudSelectItem T="int?" Value="2026">2026</MudSelectItem>
+        <MudSelectItem T="int?" Value="2025">2025</MudSelectItem>
+        </MudSelect>
+        <MudSelect T="int?" Label="@ResForBodyPage.Qartal" @bind-Value="_quarter">
+            <MudSelectItem T="int?" Value="@((int?)null)">Все</MudSelectItem>
+            <MudSelectItem T="int?" Value="1">1</MudSelectItem>
+            <MudSelectItem T="int?" Value="2">2</MudSelectItem>
+            <MudSelectItem T="int?" Value="3">3</MudSelectItem>
+            <MudSelectItem T="int?" Value="4">4</MudSelectItem>
+        </MudSelect>
+        <MudSelect T="int?" Label="@ResForBodyPage.Month" @bind-Value="_month">
+           
+        <MudSelectItem T="int?" Value="@((int?)null)">Все</MudSelectItem>
+        <MudSelectItem T="int?" Value="1">1</MudSelectItem>
+        <MudSelectItem T="int?" Value="2">2</MudSelectItem>
+        <MudSelectItem T="int?" Value="3">3</MudSelectItem>
+        <MudSelectItem T="int?" Value="4">4</MudSelectItem>
+        <MudSelectItem T="int?" Value="5">5</MudSelectItem>
+        <MudSelectItem T="int?" Value="6">6</MudSelectItem>
+        <MudSelectItem T="int?" Value="7">7</MudSelectItem>
+        <MudSelectItem T="int?" Value="8">8</MudSelectItem>
+        <MudSelectItem T="int?" Value="9">9</MudSelectItem>
+        <MudSelectItem T="int?" Value="10">10</MudSelectItem>
+        <MudSelectItem T="int?" Value="11">11</MudSelectItem>
+        <MudSelectItem T="int?" Value="12">12</MudSelectItem>
+           
+        </MudSelect>
+        <MudButton OnClick="Submit">Применить</MudButton>
+</MudPaper>
+
+</MudPopover>
+ 
+    
+       
+   
 @code {
-    private string _selectedYear = "";
-    private string _selectedQuarter = "";
-    private string _selectedMonth = "";
-    private class Periods
+    private bool _open;
+    private void ToggleFilter()
     {
-        public string Year { get; set; }
-        public string Quarter { get; set; }
-        public string Month { get; set; }
+        _open = !_open;
     }
-    [Inject]
-    private IDialogService DialogService { get; set; } // for MessageBox
+   
+    private int? _year;
+    private int? _quarter;
+    private int? _month;
+    public class Periods
+    {
+        public int? Year { get; set; }
+        public int? Quarter { get; set; }
+        public int? Month { get; set; }
+    }
 
-    [CascadingParameter]
-    private IMudDialogInstance MudDialog { get; set; }
-    private void Submit()
+    [Parameter]
+    public EventCallback<Periods> OnChange{ get; set; }
+
+    private async Task Submit()
     {
         var result = new Periods
         {
-            Year = _selectedYear,
-            Quarter = _selectedQuarter,
-            Month = _selectedMonth
+            Year = _year,
+            Quarter = _quarter,
+            Month = _month
         };
+        await OnChange.InvokeAsync(result);
 
-        MudDialog.Close(DialogResult.Ok(result));
     }
 
-    private void Cancel() => MudDialog.Cancel();
+
 
     private async Task OnKeyDownAsync(KeyboardEventArgs args)
     {
-        var result = new Periods
+        if (args.Key is "Enter" or "NumpadEnter")
         {
-            Year = _selectedYear,
-            Quarter = _selectedQuarter,
-            Month = _selectedMonth
-        };
-        switch (args.Key)
-        {
-            case "Enter":
-            case "NumpadEnter":
-                if (string.IsNullOrEmpty(result.Year) || string.IsNullOrEmpty(result.Month) || string.IsNullOrEmpty(result.Quarter))
-                {
-                    await DialogService.ShowMessageBoxAsync(
-                        "Sorry",
-                        @"You must either select a coffee and close with Enter or cancel with Escape!",
-                        yesText: "Got it",
-                        options: new DialogOptions() { CloseOnEscapeKey = true });
-                    return;
-                }
-                Submit();
-                break;
+            await Submit();
         }
     }
  

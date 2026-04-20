@@ -3,11 +3,9 @@ using System.Collections.Generic;
 
 namespace DashBoard.Lib.Models;
 
-public partial class source
+public partial class type_photo
 {
     public int id { get; set; }
 
     public string? name { get; set; }
-
-    public virtual ICollection<bpla> bplas { get; set; } = new List<bpla>();
 }

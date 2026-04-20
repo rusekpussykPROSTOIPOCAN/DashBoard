@@ -18,11 +18,11 @@ public partial class dashboardContext : DbContext
 
     public virtual DbSet<address> addresses { get; set; }
 
-    public virtual DbSet<bpla> bplas { get; set; }
-
-    public virtual DbSet<detector> detectors { get; set; }
+    public virtual DbSet<article> articles { get; set; }
 
     public virtual DbSet<district> districts { get; set; }
+
+    public virtual DbSet<employee> employees { get; set; }
 
     public virtual DbSet<objects_for_apartmen> objects_for_apartmens { get; set; }
 
@@ -30,7 +30,7 @@ public partial class dashboardContext : DbContext
 
     public virtual DbSet<overfly_block2> overfly_block2s { get; set; }
 
-    public virtual DbSet<responsible> responsibles { get; set; }
+    public virtual DbSet<photo> photos { get; set; }
 
     public virtual DbSet<robot> robots { get; set; }
 
@@ -38,18 +38,27 @@ public partial class dashboardContext : DbContext
 
     public virtual DbSet<robots_apartament> robots_apartaments { get; set; }
 
-    public virtual DbSet<source> sources { get; set; }
+    public virtual DbSet<sourse> sourses { get; set; }
 
     public virtual DbSet<statusapplication> statusapplications { get; set; }
 
+    public virtual DbSet<type_photo> type_photos { get; set; }
+
     public virtual DbSet<violation> violations { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=dashboard;Username=postgres;Password=1111");
+    public virtual DbSet<work_progress> work_progresses { get; set; }
+    public DbSet<JsonResultDto> JsonResults { get; set; }
+    public virtual DbSet<work_progress_violation> work_progress_violations { get; set; }
+    public DbSet<AddWorkProgressResult> AddWorkProgressResults { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<JsonResultDto>(entity =>
+        {
+            entity.HasNoKey();
+            entity.ToView(null); 
+        });
+        modelBuilder.Entity<AddWorkProgressResult>().HasNoKey();
         modelBuilder.Entity<address>(entity =>
         {
             entity.HasKey(e => e.id).HasName("addresses_pkey");
@@ -57,33 +66,15 @@ public partial class dashboardContext : DbContext
             entity.Property(e => e.address1).HasColumnName("address");
         });
 
-        modelBuilder.Entity<bpla>(entity =>
+        modelBuilder.Entity<article>(entity =>
         {
-            entity.HasKey(e => e.id).HasName("bpla_pkey");
+            entity.HasKey(e => e.id).HasName("article_pkey");
 
-            entity.ToTable("bpla");
+            entity.ToTable("article");
 
-            entity.Property(e => e._double).HasColumnName("double");
-            entity.Property(e => e.comment).HasMaxLength(500);
-
-            entity.HasOne(d => d.detector).WithMany(p => p.bplas)
-                .HasForeignKey(d => d.detector_id)
-                .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("bpla_detector_id_fkey");
-
-            entity.HasOne(d => d.sourse).WithMany(p => p.bplas)
-                .HasForeignKey(d => d.sourse_id)
-                .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("bpla_sourse_id_fkey");
-        });
-
-        modelBuilder.Entity<detector>(entity =>
-        {
-            entity.HasKey(e => e.id).HasName("detector_pkey");
-
-            entity.ToTable("detector");
-
-            entity.Property(e => e.name).HasMaxLength(30);
+            entity.Property(e => e.article1)
+                .HasMaxLength(150)
+                .HasColumnName("article");
         });
 
         modelBuilder.Entity<district>(entity =>
@@ -91,6 +82,17 @@ public partial class dashboardContext : DbContext
             entity.HasKey(e => e.id).HasName("districts_pkey");
 
             entity.Property(e => e.name).HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<employee>(entity =>
+        {
+            entity.HasKey(e => e.id).HasName("employee_pkey");
+
+            entity.ToTable("employee");
+
+            entity.Property(e => e.employee1)
+                .HasMaxLength(200)
+                .HasColumnName("employee");
         });
 
         modelBuilder.Entity<objects_for_apartmen>(entity =>
@@ -139,13 +141,15 @@ public partial class dashboardContext : DbContext
                 .HasConstraintName("fk_distric2");
         });
 
-        modelBuilder.Entity<responsible>(entity =>
+        modelBuilder.Entity<photo>(entity =>
         {
-            entity.HasKey(e => e.id).HasName("responsible_pkey");
+            entity.HasKey(e => e.id).HasName("bpla_pkey");
 
-            entity.ToTable("responsible");
+            entity.Property(e => e.id).HasDefaultValueSql("nextval('bpla_id_seq'::regclass)");
 
-            entity.Property(e => e.name).HasMaxLength(50);
+            entity.HasOne(d => d.id_typeNavigation).WithMany(p => p.Inverseid_typeNavigation)
+                .HasForeignKey(d => d.id_type)
+                .HasConstraintName("photos_photos_fk");
         });
 
         modelBuilder.Entity<robot>(entity =>
@@ -181,13 +185,14 @@ public partial class dashboardContext : DbContext
                 .HasConstraintName("robots_apartaments_object_id_fkey");
         });
 
-        modelBuilder.Entity<source>(entity =>
+        modelBuilder.Entity<sourse>(entity =>
         {
             entity.HasKey(e => e.id).HasName("source_pkey");
 
-            entity.ToTable("source");
+            entity.ToTable("sourse");
 
-            entity.Property(e => e.name).HasMaxLength(30);
+            entity.Property(e => e.id).HasDefaultValueSql("nextval('source_id_seq'::regclass)");
+            entity.Property(e => e.source).HasMaxLength(150);
         });
 
         modelBuilder.Entity<statusapplication>(entity =>
@@ -199,11 +204,45 @@ public partial class dashboardContext : DbContext
             entity.Property(e => e.name).HasMaxLength(200);
         });
 
+        modelBuilder.Entity<type_photo>(entity =>
+        {
+            entity.HasKey(e => e.id).HasName("type_photo_pkey");
+
+            entity.ToTable("type_photo");
+
+            entity.Property(e => e.name).HasMaxLength(10);
+        });
+
         modelBuilder.Entity<violation>(entity =>
         {
             entity.HasKey(e => e.id).HasName("violations_pkey");
 
             entity.Property(e => e.name).HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<work_progress>(entity =>
+        {
+            entity.HasKey(e => e.id).HasName("work_progress_pkey");
+
+            entity.ToTable("work_progress");
+
+            entity.Property(e => e.comment).HasMaxLength(500);
+            entity.Property(e => e.created_at)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone");
+
+            entity.HasOne(d => d.id_sourseNavigation).WithMany(p => p.work_progresses)
+                .HasForeignKey(d => d.id_sourse)
+                .HasConstraintName("work_progress_id_sourse_fkey");
+        });
+
+        modelBuilder.Entity<work_progress_violation>(entity =>
+        {
+            entity.HasKey(e => e.id).HasName("work_progress_violations_pkey");
+
+            entity.HasOne(d => d.id_work_progressNavigation).WithMany(p => p.work_progress_violations)
+                .HasForeignKey(d => d.id_work_progress)
+                .HasConstraintName("work_progress_violations_id_work_progress_fkey");
         });
 
         OnModelCreatingPartial(modelBuilder);

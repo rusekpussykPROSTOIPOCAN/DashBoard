@@ -1,5 +1,5 @@
 <Solution>
-  <Project Path="DashBoard.API/DashBoard.API.csproj" Id="a89db02e-5651-483c-a22b-6e99925daa6e" />
+  <Project Path="DashBoard.Api/DashBoard.Api.csproj" Id="9a690732-093b-4820-9e77-950d400be3fd" />
   <Project Path="DashBoard.Lib/DashBoard.Lib.csproj" />
   <Project Path="DashBoard.Web/DashBoard.Web.csproj" Id="645a1b6e-18f7-4b00-b546-556cc330f80f" />
 </Solution>

@@ -1,176 +1,302 @@
 ﻿@page "/FormAnalityc"
+@using System.Text.Json
+@inject ISnackbar Snackbar
+@inject Services.ApiService api
 <MudContainer MaxWidth="MaxWidth.Medium">
-    <MudItem>
-        <MudAutocomplete T="string" Label="Источник" @bind-Value="value2"
-                         @bind-Value:after="OnAfterValueChanged"
-                         SearchFunc="@Search2"
-                         ResetValueOnEmptyText="@resetValueOnEmptyText"
-                         CoerceText="@coerceText" CoerceValue="@coerceValue"
-                         SelectValueOnTab="@selectedOnTab"
-                         AdornmentIcon="@Icons.Material.Filled.Search"
-                         AdornmentColor="Color.Primary" />
-    </MudItem>
-    @if (showOtherField)
-    {
+    <MudItem Class="my-5">
+        
+        <MudSelect T="sourse"
+                   Label="Выберите задачу"
+                   @bind-Value="selectedSourse"
+                   Variant="Variant.Outlined"
+                   Margin="Margin.Dense" ToStringFunc="@(s => s?.source)">
 
-        <MudItem>
-            <MudTextField @bind-Value="TextValue" Label="Впишите источник" Required="true" RequiredError="Обазательно для заполнения!" Variant="Variant.Text"></MudTextField>
-        </MudItem>
-    }
-    <MudItem Class="mt-5 d-flex justify-center flex-grow-1 gap-4">
-        <MudTextField Error="@ErrorPer" @bind-Value="perimetr" @bind-Value:after="OnAfterPerimeter" Label="Общий периметр" />
-        <MudTextField Error="@ErrorPer" @bind-Value="complete" @bind-Value:after="OnAfterPerimeter" Label="Выполнено" />
-        <MudTextField Error="@ErrorPer" @bind-Value:after="OnEditRemained" @bind-Value="remained" Label="Осталось" />
-    </MudItem>
-    <MudItem Class="mt-5 d-flex justify-center flex-grow-1 gap-4">
-        <MudTextField Error="@ErrorVio" @bind-Value="violations" @bind-Value:after="OnAfteGIN" Label="Нарушений за неделю" />
-        <MudTextField Error="@ErrorVio" @bind-Value="NewViolations" @bind-Value:after="OnAfteGIN" Label="Новые" />
-        <MudTextField Error="@ErrorVio" @bind-Value:after="OnAfterViolation" @bind-Value="OldViolations" Label="Ранее выявленые ГИН" />
-    </MudItem>
-    <MudItem>
-        <MudAutocomplete T="string" Label="Нарушения" @bind-Value="value3"
-                         @bind-Value:after="OnAfterValue"
-                         SearchFunc="@Search3"
-                         ResetValueOnEmptyText="@resetValueOnEmptyText"
-                         CoerceText="@coerceText" CoerceValue="@coerceValue"
-                         SelectValueOnTab="@selectedOnTab"
-                         AdornmentIcon="@Icons.Material.Filled.Search"
-                         AdornmentColor="Color.Primary" />
-    </MudItem>
-    @if (showOtherField1)
-    {
+            @foreach (var sub in sourses ?? new())
+            {
+                <MudSelectItem Value="@sub">@sub?.source</MudSelectItem>
+            }
 
-        <MudItem>
-            <MudTextField @bind-Value="TextValue1" Label="Нарушение" Required="true" RequiredError="Обазательно для заполнения!" Variant="Variant.Text"></MudTextField>
-        </MudItem>
+        </MudSelect>
+    </MudItem>
+    <MudItem Class="my-5">
+        @if (article == null)
+        {
+            <MudText>Загрузка...</MudText>
+        }
+        else
+        {
+            <MudList T="article" SelectionMode="SelectionMode.MultiSelection" SelectedValues="selectedArticle"
+                     SelectedValuesChanged="@(selection => OnArticleSelected(selection))">
+                <MudListItem Text="Нарушения">
+                    <NestedList>
+
+                        @foreach (var sub in article)
+                        {
+                            <MudListItem T="article" Text="@sub?.article1" Value="@sub" />
+                        }
+                    </NestedList>
+                </MudListItem>
+            </MudList>
+        }
+    </MudItem>
+    @if (selectedArticle?.Any() == true)
+    {
+        <MudText Typo="Typo.h5" Class="mt-8 mb-4">Параметры по выбранным нарушениям</MudText>
+
+        @foreach (var art in selectedArticle)
+        {
+            var currentArt = art;
+            var data = articleAData[currentArt];
+            <MudPaper Class="pa-6 mb-6" Outlined="true">
+                <MudText Typo="Typo.h6" Color="Color.Primary" Class="mb-4">
+                    @art.article1
+                </MudText>
+
+                <MudGrid Spacing="4">
+                    <MudItem xs="12" sm="4">
+                        <MudTextField T="uint?"
+                                      Label="Нарушений за неделю"
+                                      Value="@GetViolationsWeek(art)"
+                                      ValueChanged="@(v=> {SetViolationsWeek(art,v); OnViolationChanged(art);})"
+                                      Variant="Variant.Outlined" Error="@GetErrorVio(art)" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField T="uint?"
+                                      Label="Новые"
+                                      Value="@GetNewViolations(art)"
+                                      ValueChanged="@(v=> {SetNewViolations(art,v); OnViolationChanged(art);})"
+                                      Variant="Variant.Outlined" Error="@GetErrorVio(art)" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField T="uint?"
+                                      Value="@GetOldViolations(art)"
+                                      ValueChanged="@(v=> {SetOldViolations(art,v); OnViolationChanged(art);})"
+                                      Label="Ранее выявленые ГИН"
+                                      Variant="Variant.Outlined" Error="@GetErrorVio(art)" />
+                    </MudItem>
+                </MudGrid>
+                   
+            </MudPaper>
+        }
     }
+    else if (article != null)
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-6">
+            Выберите одно или несколько нарушений, чтобы настроить параметры
+        </MudAlert>
+    }
+    <MudGrid Class="mt-5" Spacing="4">
+        <MudItem xs="12" sm="4">
+            <MudTextField T="uint"
+                          @bind-Value="perimeter"
+                          Label="Общий периметр"
+                          Variant="Variant.Outlined" @bind-Value:after="OnAfterPerimeter" Error="@ErrorPer" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudTextField T="uint"
+                          @bind-Value="complete"
+                          Label="Выполнено"
+                          Variant="Variant.Outlined" @bind-Value:after="OnAfterPerimeter" Error="@ErrorPer" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudTextField T="uint"
+                          @bind-Value="remained"
+                          Label="Осталось" Error="@ErrorPer"
+                          Variant="Variant.Outlined" @bind-Value:after="OnEditRemained" />
+        </MudItem>
+    </MudGrid>
+    <MudItem Class="mt-6">
+        <MudButton OnClick="SaveData" Variant="Variant.Filled" Disabled="@IsButtonDisabled">Отправить</MudButton>
+
+    </MudItem>
+    
 </MudContainer>
 
 @code {
-    public string TextValue { get; set; }
-    public string TextValue1 { get; set; }
-
-    uint violations = 0;
-    uint NewViolations = 0;
-    uint OldViolations = 0;
-
-    uint perimetr = 0;
-    uint complete = 0;
-    uint remained = 0;
-    int weekInt;
-    private bool showOtherField = false;
-    private bool showOtherField1 = false;
+    uint perimeter = 0, complete = 0, remained = 0;
     private bool ErrorPer = false;
-    private bool ErrorVio = false;
-    private bool resetValueOnEmptyText;
-    private bool coerceText;
-    private bool coerceValue;
-    private bool selectedOnTab;
-    private string value2;
-    private string value3;
-    private string[] states =
+    private List<article>? article = new();
+    private List<sourse>? sourses = new();
+    private HashSet<article> selectedArticle = new();
+    private sourse? selectedSourse = new();
+    private Dictionary<article, ArticleData> articleAData = new();
+
+
+
+
+    protected override async Task OnInitializedAsync()
     {
-        "другое",
-       "источник 1","источник 2","источник 3","источник 4"
-    };
-    private string[] states1 =
+        article = await api.GetAsync<List<article>>("/api/articles");
+        sourses = await api.GetAsync<List<sourse>>("/api/sources");
+
+    }
+    private void OnArticleSelected(IReadOnlyCollection<article> selection)
     {
-        "другое",
-       "Нарушение:? Статья:?"
-    };
-    private async Task OnEditRemained()
+        selectedArticle = selection.ToHashSet();
+        foreach (var item in selection)
+        {
+            if (!articleAData.ContainsKey(item))
+            {
+                articleAData[item] = new ArticleData();
+            }
+        }
+
+        StateHasChanged();
+
+    }
+    private bool IsButtonDisabled
     {
-        if (remained > perimetr)
+        get
+        {
+            if (selectedSourse == null) return true;
+            if (selectedArticle.Count == 0) return true;
+            if (ErrorPer) return true;
+            if (perimeter == 0 && complete == 0 && remained == 0) return true;
+            foreach (var art in selectedArticle)
+            {
+                var data = articleAData.GetValueOrDefault(art);
+                if (data?.ErrorVio == true) return true;
+
+            }
+
+
+            return false;
+        }
+    }
+
+    private class ArticleData
+    {
+        public uint? ViolationsWeek { get; set; }
+        public uint? NewViolations { get; set; }
+        public uint? OldViolations { get; set; }
+        public bool ErrorVio { get; set; } = false;
+
+
+    }
+    private uint? GetViolationsWeek(article art)
+    => articleAData.GetValueOrDefault(art)?.ViolationsWeek;
+
+    private void SetViolationsWeek(article art, uint? value)
+    {
+        if (articleAData.TryGetValue(art, out var data))
+            data.ViolationsWeek = value;
+    }
+    private uint? GetNewViolations(article art)
+    => articleAData.GetValueOrDefault(art)?.NewViolations;
+
+    private void SetNewViolations(article art, uint? value)
+    {
+        if (articleAData.TryGetValue(art, out var data))
+            data.NewViolations = value;
+    }
+    private uint? GetOldViolations(article art)
+    => articleAData.GetValueOrDefault(art)?.OldViolations;
+
+    private void SetOldViolations(article art, uint? value)
+    {
+        if (articleAData.TryGetValue(art, out var data))
+            data.OldViolations = value;
+    }
+    private bool GetErrorVio(article art)
+    => articleAData.GetValueOrDefault(art)?.ErrorVio ?? false;
+    private void OnViolationChanged(article art)
+    {
+        var data = articleAData.GetValueOrDefault(art);
+        if (data == null) return;
+
+        uint violations = data.ViolationsWeek ?? 0;
+        uint newV = data.NewViolations ?? 0;
+        uint oldV = data.OldViolations ?? 0;
+
+        bool hasError = (newV + oldV > violations) || (newV > violations) || (oldV > violations);
+
+        data.ErrorVio = hasError;
+
+        if (!hasError)
+        {
+            if (oldV == 0 && newV > 0 && violations > 0)
+                data.OldViolations = violations - newV;
+            else if (newV == 0 && oldV > 0 && violations > 0)
+                data.NewViolations = violations - oldV;
+        }
+
+
+        StateHasChanged();
+    }
+
+    private void UpdatePerimeter()
+    {
+        if (complete > perimeter || remained > perimeter)
         {
             ErrorPer = true;
+            return;
         }
-        else
-        {
-            ErrorPer = false;
-            complete = perimetr - remained;
-        }
-    }
-    private async Task OnAfterPerimeter()
-    {
-        if (complete > perimetr)
-        {
-            ErrorPer = true;
-        }
-        else
-        {
-            ErrorPer = false;
-            remained = perimetr - complete;
-        }
-    }
-    private async Task OnAfterViolation()
-    {
-        if (OldViolations > violations)
-        {
-            ErrorVio = true;
-        }
-        else
-        {
-            ErrorVio = false;
-            NewViolations = violations - OldViolations;
-        }
-    }
-    private async Task OnAfteGIN()
-    {
-        if (NewViolations > violations)
-        {
-            ErrorVio = true;
-        }
-        else
-        {
-            ErrorVio = false;
-            OldViolations = violations - NewViolations;
-        }
-    }
-    private async Task OnAfterValueChanged()
-    {
-        if (value2 == "другое")
-        {
-            showOtherField = true;
 
-        }
-        else
-        {
-            showOtherField = false;
-
-        }
-    }
-    private async Task OnAfterValue()
-    {
-        if (value3 == "другое")
-        {
-            showOtherField1 = true;
-
-        }
-        else
-        {
-            showOtherField1 = false;
-
-        }
+        ErrorPer = false;
+        if (remained > 0) complete = perimeter - remained;
+        else if (complete > 0) remained = perimeter - complete;
     }
 
-    private async Task<IEnumerable<string>> Search2(string value, CancellationToken token)
+    private async Task OnEditRemained() => UpdatePerimeter();
+    private async Task OnAfterPerimeter() => UpdatePerimeter();
+
+
+    private async Task SaveData()
     {
+        if (selectedSourse == null)
+        {
+            Snackbar.Add("Источник не выбран", Severity.Error);
+            return;
+        }
 
-        await Task.Delay(5, token);
+        if (selectedArticle.Count == 0)
+        {
+            Snackbar.Add("Выберите хотя бы одно нарушение", Severity.Error);
+            return;
+        }
 
+        var request = new AddWorkProgressRequest
+        {
+            IdSourse = selectedSourse.id,
+            AllPerimeter = (int)perimeter,
+            CompletePerimeter = (int)complete,
+            RemainedPerimeter = (int)remained,
+            Comment = ""
+        };
+       
+        foreach (var art in selectedArticle)
+        {
+            var data = articleAData.GetValueOrDefault(art);
+            if (data == null) continue;
 
-        if (string.IsNullOrEmpty(value))
-            return new string[0];
-        return states.Where(x => x.Contains(value, StringComparison.InvariantCultureIgnoreCase));
-    }
-    private async Task<IEnumerable<string>> Search3(string value, CancellationToken token)
-    {
+            request.Violations.Add(new ViolationItem
+            {
+                IdArticle = art.id,
+                ViolationsWeek = (int?)data.ViolationsWeek,
+                NewViolations = (int?)data.NewViolations,
+                OldViolations = (int?)data.OldViolations
+            });
+          
+        }
+       
 
-        await Task.Delay(5, token);
+        try
+        {
+            Snackbar.Add("Отправляем данные на сервер...", Severity.Info);
 
+            var response = await api.PostAsync<object>("/api/form", request);
 
-        if (string.IsNullOrEmpty(value))
-            return new string[0];
-        return states1.Where(x => x.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+            Snackbar.Add("Данные успешно сохранены!", Severity.Success);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+        {
+            Snackbar.Add("Ошибка 400: Неверные данные. Проверьте заполнение формы.", Severity.Error);
+            Console.WriteLine("Bad Request Details: " + ex.Message);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
+            Console.WriteLine(ex);
+        }
     }
 }

@@ -61,11 +61,38 @@ namespace DashBoard.Lib.Strings {
         }
         
         /// <summary>
+        ///   Ищет локализованную строку, похожую на Общая статистика.
+        /// </summary>
+        public static string AllThinks {
+            get {
+                return ResourceManager.GetString("AllThinks", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Ищет локализованную строку, похожую на БПЛА.
         /// </summary>
         public static string BPLA {
             get {
                 return ResourceManager.GetString("BPLA", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на Количество отработанных заявок роботами за месяц.
+        /// </summary>
+        public static string chartDKNapplicationMonth {
+            get {
+                return ResourceManager.GetString("chartDKNapplicationMonth", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на Площадь покрытия Москвы средствами АФС .
+        /// </summary>
+        public static string chartDKNsqrtAFS {
+            get {
+                return ResourceManager.GetString("chartDKNsqrtAFS", resourceCulture);
             }
         }
         

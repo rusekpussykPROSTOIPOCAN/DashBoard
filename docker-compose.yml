@@ -1,20 +1,51 @@
-version: '3.8'
+networks:
+  dashboard-network:
+    driver: bridge
 
 services:
   postgres:
-
-    image: postgres:18-alpine      # только если очень нужно 18+
-    
-    container_name: postgres-db
-    restart: unless-stopped
-    ports:
-      - "5432:5432"
+    image: postgres:18-alpine
+    container_name: dashboard-postgres
     environment:
+      POSTGRES_DB: dashboard
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 1111
-      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - dashboard-network
     volumes:
-      - postgres-data:/var/lib/postgresql   # ← Вот главное изменение!
+      - postgres_data:/var/lib/postgresql/data
+      
+
+  api:
+    build:
+      context: .
+      dockerfile: DashBoard.Api/Dockerfile
+    container_name: dashboard-api
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=dashboard;Username=postgres;Password=1111
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - dashboard-network
+
+  web:
+    build:
+      context: .
+      dockerfile: DashBoard.Web/Dockerfile
+    container_name: dashboard-web
+    environment:
+      - API_URL=http://api:8080
+      - ASPNETCORE_ENVIRONMENT=Development 
+    ports:
+      - "5000:8080"     
+    depends_on:
+      - api
+    networks:
+      - dashboard-network
 
 volumes:
-  postgres-data:
+  postgres_data:

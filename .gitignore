@@ -361,3 +361,21 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# User Secrets (секреты разработки)
+**/secrets.json
+**/appsettings.Development.json
+
+# Docker .env файлы
+.env
+.env.*
+!.env.example
+
+# Visual Studio temp files
+.vs/
+bin/
+obj/
+
+# User-specific files
+*.user
+*.userosscache
+*.suo

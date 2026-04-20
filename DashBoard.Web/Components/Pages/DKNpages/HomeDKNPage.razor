@@ -5,9 +5,6 @@
 <PageTitle>@Departs.DepartsSecond</PageTitle>
 <MudContainer MaxWidth="MaxWidth.Large">
     <MudGrid Justify="Justify.Center">
-        <MudItem xs="12" Class="mb-4">
-           <MudText Align="Align.Center" Typo="Typo.h5">@ResForBodyPage.FPTitle</MudText>
-        </MudItem>
         <MudItem class="ml-20" sm="3" xs="6">
             <MudButton StartIcon="@Icons.Material.Filled.TableChart" IconColor="Color.Success">@ResForBodyPage.Table</MudButton>
         </MudItem>
@@ -21,16 +18,18 @@
                 @ResForBodyPage.Period
             </MudButton>
         </MudItem>
+        <MudItem xs="12" >
+           <MudText Align="Align.Center" Typo="Typo.h5">@ResForBodyPage.FPTitle</MudText>
+        </MudItem>
        
-        <MudItem Class="mr-15" sm="3" xs="6">
+        <MudItem Class="mr-15 d-flex flex-column align-items-center" sm="3" xs="6">
+            <MudText Align="Align.Center">@ResForBodyPage.chartDKNsqrtAFS</MudText>
             <MudChart ChartType="ChartType.Donut" Width="100%" Height="300px" ChartSeries="@Data.AsChartDataSet()" ChartLabels="@Labels">
-                <CustomGraphics>
-                    <text class="mud-donut-text mud-typography-h3" x="50%" y="50%">@Data.Sum()</text>
-                </CustomGraphics>
+            
             </MudChart>
         </MudItem>
-        <MudItem class="ml-15" sm="3" xs="6">
-           
+        <MudItem class="ml-15  d-flex flex-column align-items-center" sm="3" xs="6">
+            <MudText Align="Align.Center">@ResForBodyPage.chartDKNapplicationMonth</MudText>
             <MudChart ChartType="ChartType.Donut" Width="100%" Height="300px" ChartSeries="@Data.AsChartDataSet()" ChartLabels="@Labels">
                 <CustomGraphics>
                     <text class="mud-donut-text mud-typography-h3" x="50%" y="50%">@Data.Sum()</text>
@@ -40,8 +39,15 @@
         </MudItem>
       
         <MudItem xs="12" >
-            
+            <MudText Align="Align.Center">
+                Точность ИНС
+            </MudText>
+                <MudChart ChartType="ChartType.Line" ChartSeries="@_series" ChartLabels="@_xAxisLabels"  Width="100%" Height="350px">
+                    
+                </MudChart>
+           
         </MudItem>
+
     </MudGrid>
    
 </MudContainer>
@@ -51,14 +57,10 @@
     private List<ChartSeries<double>> _series = new List<ChartSeries<double>>()
     {
         new ChartSeries<double>() { Name = "ЕЦХД", Data = new double[] { 90, 79, 72, 69, 62, 62, 55, 65, 70 } },
-        new ChartSeries<double>() { Name = "БПЛА", Data = new double[] { 35, 41, 35, 51, 49, 62, 69, 91, 148 } },
+        new ChartSeries<double>() { Name = "БПЛА", Data = new double[] { 35, 41, 35, 51, 49, 62, 69, 91 } },
         new ChartSeries<double>() { Name = "Космос", Data = new double[] { 80, 23, 35, 62, 49, 12, 100, 91, 18 } },
     };
-    public string[] XAxisLabelses = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep" };
-
-
- 
-    public string[] XAxisLabels = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep" };
+    public string[] _xAxisLabels = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep" };
     public double[] Data = { 25, 77, 28};
     public string[] Labels = { "Захламление", "Стройка без PC", "Отсутствие ЗПО" };
     private bool _editable = true;

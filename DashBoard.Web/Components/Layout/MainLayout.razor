@@ -1,11 +1,20 @@
 ﻿@inherits LayoutComponentBase
+
 <MudThemeProvider />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
-<MudLayout>
+<div style="position: fixed; top: 10px; left: 10px; z-index: 9999;">
+    <MudImage Alt="Логотип"
+              Width="150"
+              Height="50"
+              Src="Images/logo.svg" />
+</div>
 
+<MudLayout>
+   
     <MudDrawer @bind-Open="@_openStart" Style="height:fit-content;" Anchor="Anchor.Start" Elevation="0" Variant="@DrawerVariant.Persistent">
+     
         <MudDrawerHeader>
             <MudText Typo="Typo.h6">@Departs.Departsfirst</MudText>
         </MudDrawerHeader>
@@ -26,7 +35,8 @@
                                                                     Icons.Material.Filled.East)" Class="mx-2">@verbs.chooshe @Departs.deps @Departs.DepartsSecond</MudButton>
     </div>
     <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" >
+        <MudContainer  MaxWidth="MaxWidth.ExtraLarge" >
+           
             @Body
         </MudContainer>
     </MudMainContent>
@@ -36,6 +46,7 @@
 
 @code
 {
+    
     private bool _openStart = false;
     private bool _openEnd = false;
 

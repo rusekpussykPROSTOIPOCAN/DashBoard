@@ -1,35 +1,52 @@
 using DashBoard.Web.Components;
-using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
+using DashBoard.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add MudBlazor services
+
+var apiUrl = Environment.GetEnvironmentVariable("API_URL");
+
+// Если переменная не задана (локальный запуск), используем localhost
+if (string.IsNullOrEmpty(apiUrl))
+{
+    apiUrl = "http://localhost:8080";
+}
+
 builder.Services.AddMudServices();
 
-// Add services to the container.
+
+
+builder.Services.AddHttpClient("ApiClient", c =>
+{
+    c.BaseAddress = new Uri(apiUrl);
+});
+
+builder.Services.AddScoped<ApiService>(sp =>
+{
+    var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    return new ApiService(clientFactory.CreateClient("ApiClient"));
+});
+
+
+
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+       .AddInteractiveServerComponents();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-
     app.UseHsts();
 }
 
-
-
 app.UseHttpsRedirection();
-
-
 app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+   .AddInteractiveServerRenderMode();
 
 app.Run();
