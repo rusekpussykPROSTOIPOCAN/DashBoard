@@ -1,48 +1,83 @@
 ﻿@page "/robot"
 @inject IDialogService DialogService
-
+@inject Services.ApiService api
 <PageTitle>@Departs.Robots</PageTitle>
 <MudContainer MaxWidth="MaxWidth.Large">
     <MudGrid>  
         <MudItem sm="3" xs="6">
-            <MudButton @onclick="PeriodFilter" Variant="Variant.Filled" Color="Color.Primary">
-                @ResForBodyPage.Period
-            </MudButton>
+            <DialogPer OnChange="OnPeriodChanged"/>
         </MudItem>
-       
-        <MudItem sm="6" xs="12">
-            <MudTable Items="@GetElements()">
-                <ToolBarContent>
-                    <MudText Typo="Typo.h6">@ResForBodyPage.Choose</MudText>
-                    <MudSpacer />
-                    <MudTextField @bind-Value="_searchTerm" Placeholder="Search" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" Immediate="true"></MudTextField>
-                </ToolBarContent>
+        <MudItem xs="12">
+            <MudGrid>
 
-                <HeaderContent>
-                    <MudTh>@ResForBodyPage.Name</MudTh>
-                </HeaderContent>
+              
+                <MudItem xs="12" md="4">
+                    <MudGrid>
 
-                <RowTemplate>
-                    <MudTd DataLabel="Name">
-                        <MudHighlighter Text="@context.Name" HighlightedText="@_searchTerm" />
-                    </MudTd>
-                </RowTemplate>
-            </MudTable>
+                        <MudItem xs="12">
+                            <MudText Align="Align.Center">Отчёты</MudText>
+                           
+                            <MudChart ChartType="ChartType.Pie"
+                                      Width="100%" Height="250px"
+                                      ChartSeries="@ReportValues.AsChartDataSet()"
+                                      ChartLabels="@ReportLabels" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudText Align="Align.Center">Проверки</MudText>
+                         
+                            <MudChart ChartType="ChartType.Pie"
+                                      Width="100%" Height="250px"
+                                      ChartSeries="@ResultValues.AsChartDataSet()"
+                                      ChartLabels="@ResultLabels" />
+                        </MudItem>
+
+                    </MudGrid>
+                </MudItem>
+
+              
+                <MudItem xs="12" md="8">
+                    <MudText Align="Align.Center">Результаты</MudText>
+                    <MudChart ChartType="ChartType.Bar"
+                              Width="100%"
+                              Height="520px"
+                              ChartSeries="@CheckValues.AsChartDataSet()"
+                             ChartLabels="@CheckLabels"
+                              YAxisLines="true" />
+                </MudItem>
+
+            </MudGrid>
         </MudItem>
     </MudGrid>
 </MudContainer>
 @code {
-    private string _searchTerm = "";
-    private IEnumerable<Element> _elements = new List<Element> {  new Element { Name = "a"}, new Element {Name = "b"}
-     };
+    private RobotsUKONDetails? data;
+ 
+    private string[] ReportLabels => data?.Reports.Select(x => x.Name).ToArray() ?? [];
+    private double[] ReportValues => data?.Reports.Select(x => (double)x.Count).ToArray() ?? [];
+   
+    private string[] CheckLabels => data?.Checks.Select(x => x.Name).ToArray() ?? [];
+    private double[] CheckValues => data?.Checks.Select(x => (double)x.Count).ToArray() ?? [];
 
+    private string[] ResultLabels => data?.Results.Select(x => x.Name).ToArray() ?? [];
+    private double[] ResultValues => data?.Results.Select(x => (double)x.Count).ToArray() ?? [];
+    private int? _year;
+    private int? _month;
+    private int? _quarter;
 
     protected override async Task OnInitializedAsync()
     {
-
+        await LoadData();
     }
 
-    private IEnumerable<Element> GetElements() => _elements.Where(e => e.Name.Contains(_searchTerm));
+    private async Task OnPeriodChanged(DialogPer.Periods periods)
+    {
+        _year = periods.Year;
+        _month = periods.Month;
+        _quarter = periods.Quarter;
+        await LoadData();
+    }
+
     private async Task PeriodFilter()
     {
 
@@ -54,9 +89,19 @@
         else { StateHasChanged(); }
 
     }
-
-    private class Element
+    private async Task LoadData()
     {
-        public string Name { get; set; }
+        var query = new List<string>();
+
+        if (_year.HasValue) query.Add($"year={_year}");
+        if (_month.HasValue) query.Add($"month={_month}");
+        if (_quarter.HasValue) query.Add($"quarter={_quarter}");
+
+        var url = "api/RobotsUKON";
+
+        if (query.Any())
+            url += "?" + string.Join("&", query);
+
+        data = await api.GetAsync<RobotsUKONDetails>(url);
     }
 }

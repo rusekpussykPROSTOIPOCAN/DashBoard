@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace DashBoard.Lib.Models
+namespace DashBoard.Lib.DTOs
 {
     public class AnaliticPageDTO
     {

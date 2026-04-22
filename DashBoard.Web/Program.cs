@@ -1,6 +1,8 @@
+
 using DashBoard.Web.Components;
-using MudBlazor.Services;
 using DashBoard.Web.Services;
+
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,7 +16,6 @@ if (string.IsNullOrEmpty(apiUrl))
 }
 
 builder.Services.AddMudServices();
-
 
 
 builder.Services.AddHttpClient("ApiClient", c =>
@@ -42,7 +43,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+
 app.UseAntiforgery();
 
 app.MapStaticAssets();

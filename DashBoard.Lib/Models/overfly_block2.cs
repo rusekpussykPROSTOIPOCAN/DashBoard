@@ -20,4 +20,6 @@ public partial class overfly_block2
     public virtual address? id_adressNavigation { get; set; }
 
     public virtual district? id_districNavigation { get; set; }
+
+    public virtual statusapplication? id_statusNavigation { get; set; }
 }

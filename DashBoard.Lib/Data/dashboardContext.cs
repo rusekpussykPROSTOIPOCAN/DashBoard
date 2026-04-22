@@ -1,7 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using DashBoard.Lib.DTOs;
 using DashBoard.Lib.Models;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
 
 namespace DashBoard.Lib.Data;
 
@@ -15,7 +16,12 @@ public partial class dashboardContext : DbContext
         : base(options)
     {
     }
-
+    public DbSet<ApplicationDKN> ApplicationDKNs { get; set; }
+    public DbSet<RobotUkon> RobotsUKONs{ get; set; }
+    public virtual DbSet<work_progress> work_progresses { get; set; }
+    public DbSet<JsonResultDto> JsonResults { get; set; }
+    public virtual DbSet<work_progress_violation> work_progress_violations { get; set; }
+    public DbSet<AddWorkProgressResult> AddWorkProgressResults { get; set; }
     public virtual DbSet<address> addresses { get; set; }
 
     public virtual DbSet<article> articles { get; set; }
@@ -46,17 +52,22 @@ public partial class dashboardContext : DbContext
 
     public virtual DbSet<violation> violations { get; set; }
 
-    public virtual DbSet<work_progress> work_progresses { get; set; }
-    public DbSet<JsonResultDto> JsonResults { get; set; }
-    public virtual DbSet<work_progress_violation> work_progress_violations { get; set; }
-    public DbSet<AddWorkProgressResult> AddWorkProgressResults { get; set; }
+ 
 
+
+
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        
+  
+        modelBuilder.Entity<RobotUkon>().HasNoKey();
+    
+    modelBuilder.Entity<ApplicationDKN>().HasNoKey();
         modelBuilder.Entity<JsonResultDto>(entity =>
         {
             entity.HasNoKey();
-            entity.ToView(null); 
+            entity.ToView(null);
         });
         modelBuilder.Entity<AddWorkProgressResult>().HasNoKey();
         modelBuilder.Entity<address>(entity =>
@@ -130,6 +141,8 @@ public partial class dashboardContext : DbContext
 
             entity.ToTable("overfly_block2");
 
+            entity.HasIndex(e => e.id_status, "fki_fk_status");
+
             entity.HasOne(d => d.id_adressNavigation).WithMany(p => p.overfly_block2s)
                 .HasForeignKey(d => d.id_adress)
                 .OnDelete(DeleteBehavior.SetNull)
@@ -139,6 +152,10 @@ public partial class dashboardContext : DbContext
                 .HasForeignKey(d => d.id_distric)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("fk_distric2");
+
+            entity.HasOne(d => d.id_statusNavigation).WithMany(p => p.overfly_block2s)
+                .HasForeignKey(d => d.id_status)
+                .HasConstraintName("fk_status");
         });
 
         modelBuilder.Entity<photo>(entity =>

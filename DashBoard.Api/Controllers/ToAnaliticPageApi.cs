@@ -1,5 +1,5 @@
 ﻿using DashBoard.Lib.Data;
-using DashBoard.Lib.Models;
+using DashBoard.Lib.DTOs;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,13 +9,10 @@ namespace DashBoard.Api.Controllers
 {
     [ApiController]
     [Route("api")]
-    public class ToAnaliticPageApi : ControllerBase
+    public class ToAnaliticPageApi : BaseController
     {
-        public readonly dashboardContext _dashboard;
-
-        public ToAnaliticPageApi(dashboardContext dashboard)
+        public ToAnaliticPageApi(dashboardContext dashboard) : base(dashboard)
         {
-            _dashboard = dashboard;
         }
 
         [HttpGet("getTableAnalitic")]

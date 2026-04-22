@@ -1,22 +1,20 @@
 ﻿using DashBoard.Lib.Data;
-using DashBoard.Lib.Models;
+using DashBoard.Lib.DTOs;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System.Text.Json;
-using static DashBoard.Lib.Models.AddWorkProgressRequest;
+using static DashBoard.Lib.DTOs.AddWorkProgressRequest;
 namespace DashBoard.Api.Controllers
 {
     [ApiController]
     [Route("api")]
     [IgnoreAntiforgeryToken]
-    public class ToFormPageApi : ControllerBase
+    public class ToFormPageApi : BaseController
     {
-        public readonly dashboardContext _dashboard;
-        public ToFormPageApi(dashboardContext dashboard)
+        public ToFormPageApi(dashboardContext dashboard) : base(dashboard)
         {
-            _dashboard = dashboard;
         }
         [HttpGet("articles")]
         public async Task<IActionResult> GetArticles()

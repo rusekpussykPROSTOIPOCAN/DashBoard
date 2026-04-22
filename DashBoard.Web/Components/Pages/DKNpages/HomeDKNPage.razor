@@ -1,6 +1,8 @@
-﻿@using MudBlazor.Charts;
+﻿
+@using MudBlazor.Charts;
 @page "/homeDKN"
 @inject IDialogService DialogService
+@inject Services.ApiService api
 
 <PageTitle>@Departs.DepartsSecond</PageTitle>
 <MudContainer MaxWidth="MaxWidth.Large">
@@ -13,10 +15,7 @@
         </MudItem>
         
         <MudItem class="ml-20" sm="3" xs="6">
-           
-            <MudButton @onclick="PeriodFilter" Variant="Variant.Filled" Color="Color.Primary">
-                @ResForBodyPage.Period
-            </MudButton>
+          <DialogPer OnChange="OnPeriodChanged"/>
         </MudItem>
         <MudItem xs="12" >
            <MudText Align="Align.Center" Typo="Typo.h5">@ResForBodyPage.FPTitle</MudText>
@@ -24,21 +23,47 @@
        
         <MudItem Class="mr-15 d-flex flex-column align-items-center" sm="3" xs="6">
             <MudText Align="Align.Center">@ResForBodyPage.chartDKNsqrtAFS</MudText>
-            <MudChart ChartType="ChartType.Donut" Width="100%" Height="300px" ChartSeries="@Data.AsChartDataSet()" ChartLabels="@Labels">
-            
+            <MudChart ChartType="ChartType.Donut" Width="100%" Height="300px" ChartSeries="@DataSqr.AsChartDataSet()" ChartLabels="@LabelsSqr">
+                <CustomGraphics>
+                    <text class="mud-donut-text mud-typography-body2"
+                          x="50%" y="45%" text-anchor="middle">
+                        Площадь Москвы: 2561,5
+                    </text>
+
+                    <text class="mud-donut-text mud-typography-body2"
+                          x="50%" y="55%" text-anchor="middle">
+                        Исполнено (в кв.км): @SumSqr.Sum()
+                    </text>
+                </CustomGraphics>
             </MudChart>
         </MudItem>
         <MudItem class="ml-15  d-flex flex-column align-items-center" sm="3" xs="6">
             <MudText Align="Align.Center">@ResForBodyPage.chartDKNapplicationMonth</MudText>
-            <MudChart ChartType="ChartType.Donut" Width="100%" Height="300px" ChartSeries="@Data.AsChartDataSet()" ChartLabels="@Labels">
-                <CustomGraphics>
-                    <text class="mud-donut-text mud-typography-h3" x="50%" y="50%">@Data.Sum()</text>
-                </CustomGraphics>
+            <MudChart ChartType="ChartType.Pie" Width="100%" Height="300px" ChartSeries="@DataApps.AsChartDataSet()" >
+            
             </MudChart>
+           <MudExpansionPanels>
+    <MudExpansionPanel Text="Показать категории">
 
+        <MudList T="ApplicationDKN" Dense="true">
+            @foreach (var item in apps)
+            {
+                <MudListItem>
+                    <div class="d-flex justify-space-between w-100">
+                        <span>@item.Name</span>
+                        <MudChip Color="Color.Primary" Size="Size.Small">
+                            @item.CountApplications
+                        </MudChip>
+                    </div>
+                </MudListItem>
+            }
+        </MudList>
+
+    </MudExpansionPanel>
+</MudExpansionPanels>
         </MudItem>
       
-        <MudItem xs="12" >
+      @*   <MudItem xs="12" >
             <MudText Align="Align.Center">
                 Точность ИНС
             </MudText>
@@ -46,23 +71,56 @@
                     
                 </MudChart>
            
-        </MudItem>
+        </MudItem> *@
 
     </MudGrid>
    
 </MudContainer>
 @code {
 
-   
-    private List<ChartSeries<double>> _series = new List<ChartSeries<double>>()
+    private List<StatusSquare>? data = new();
+    private string[] LabelsSqr => data.Select(x => x.Name).ToArray();
+    private double[] DataSqr => data.Select(x => Math.Round(x.Squer,1)).ToArray();
+    private double[] SumSqr => data.Where(o => o.Name == "ИСПОЛНЕНА" || o.Name == "ДУБЛЬ").Select(x => Math.Round(x.Squer, 1)).ToArray();
+
+    private int? _year;
+    private int? _month;
+    private int? _quarter;
+
+    private List<ApplicationDKN> apps = new();
+    private string[] LabelApps => apps.Select(x => x.Name).ToArray();
+    private int[] DataApps => apps.Select(x => (int)x.CountApplications).ToArray();
+
+    private async Task OnPeriodChanged(DialogPer.Periods periods)
     {
-        new ChartSeries<double>() { Name = "ЕЦХД", Data = new double[] { 90, 79, 72, 69, 62, 62, 55, 65, 70 } },
-        new ChartSeries<double>() { Name = "БПЛА", Data = new double[] { 35, 41, 35, 51, 49, 62, 69, 91 } },
-        new ChartSeries<double>() { Name = "Космос", Data = new double[] { 80, 23, 35, 62, 49, 12, 100, 91, 18 } },
-    };
-    public string[] _xAxisLabels = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep" };
-    public double[] Data = { 25, 77, 28};
-    public string[] Labels = { "Захламление", "Стройка без PC", "Отсутствие ЗПО" };
+        _year = periods.Year;
+        _month = periods.Month;
+        _quarter = periods.Quarter;
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var query = new List<string>();
+
+        if (_year.HasValue) query.Add($"year={_year}");
+        if (_month.HasValue) query.Add($"month={_month}");
+        if (_quarter.HasValue) query.Add($"quarter={_quarter}");
+
+        var url = "api/ApplicatonsHomeDKN";
+
+        if (query.Any())
+            url += "?" + string.Join("&", query);
+
+        apps = await api.GetAsync<List<ApplicationDKN>>(url);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        data = await api.GetAsync<List<StatusSquare>>("api/SqrByStatus") ?? new();
+    } 
+
     private bool _editable = true;
     private bool _clearable = true;
     private DateRange _dateRange { get; set; }
