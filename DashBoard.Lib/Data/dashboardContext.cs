@@ -16,12 +16,7 @@ public partial class dashboardContext : DbContext
         : base(options)
     {
     }
-    public DbSet<ApplicationDKN> ApplicationDKNs { get; set; }
-    public DbSet<RobotUkon> RobotsUKONs{ get; set; }
-    public virtual DbSet<work_progress> work_progresses { get; set; }
-    public DbSet<JsonResultDto> JsonResults { get; set; }
-    public virtual DbSet<work_progress_violation> work_progress_violations { get; set; }
-    public DbSet<AddWorkProgressResult> AddWorkProgressResults { get; set; }
+   
     public virtual DbSet<address> addresses { get; set; }
 
     public virtual DbSet<article> articles { get; set; }
@@ -52,24 +47,16 @@ public partial class dashboardContext : DbContext
 
     public virtual DbSet<violation> violations { get; set; }
 
- 
+    public virtual DbSet<work_progress> work_progresses { get; set; }
 
-
-
-    
+    public virtual DbSet<work_progress_violation> work_progress_violations { get; set; }
+    public DbSet<ApplicationDKN> ApplicationDKN { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        
-  
-        modelBuilder.Entity<RobotUkon>().HasNoKey();
-    
-    modelBuilder.Entity<ApplicationDKN>().HasNoKey();
-        modelBuilder.Entity<JsonResultDto>(entity =>
-        {
-            entity.HasNoKey();
-            entity.ToView(null);
-        });
+     
         modelBuilder.Entity<AddWorkProgressResult>().HasNoKey();
+        modelBuilder.Entity<JsonResultDto>().HasNoKey();
+        modelBuilder.Entity<ApplicationDKN>().HasNoKey();
         modelBuilder.Entity<address>(entity =>
         {
             entity.HasKey(e => e.id).HasName("addresses_pkey");
@@ -172,6 +159,8 @@ public partial class dashboardContext : DbContext
         modelBuilder.Entity<robot>(entity =>
         {
             entity.HasKey(e => e.id).HasName("robots_pkey");
+
+            entity.HasIndex(e => e.name, "indx_robot_name");
 
             entity.Property(e => e.name).HasMaxLength(70);
             entity.Property(e => e.short_name).HasMaxLength(20);

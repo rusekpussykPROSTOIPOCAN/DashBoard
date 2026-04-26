@@ -45,7 +45,7 @@
     private bool _open;
     private void ToggleFilter()
     {
-        _open = !_open;
+        _open = true;
     }
    
     private int? _year;
@@ -69,6 +69,8 @@
             Quarter = _quarter,
             Month = _month
         };
+        _open = false; 
+        
         await OnChange.InvokeAsync(result);
 
     }

@@ -1,73 +1,115 @@
 ﻿@page "/robot"
 @inject IDialogService DialogService
 @inject Services.ApiService api
+
 <PageTitle>@Departs.Robots</PageTitle>
+
 <MudContainer MaxWidth="MaxWidth.Large">
-    <MudGrid>  
+    <MudGrid>
+
         <MudItem sm="3" xs="6">
             <DialogPer OnChange="OnPeriodChanged"/>
         </MudItem>
+        <MudItem sm="3" xs="6">
+            <MudAutocomplete T="RobotDto"
+                Label="Робот"
+                SearchFunc="SearchRobots"
+                ToStringFunc="r => r?.Name ?? string.Empty"
+                ValueChanged="OnRobotChanged"
+                MinCharacters="0"
+                CoerceValue="false"
+                ResetValueOnEmptyText="true"/>
+        </MudItem>
+
         <MudItem xs="12">
             <MudGrid>
+                @foreach (var chart in charts)
+                {
+                    <MudItem md="6" sm="12" xs="12">
 
-              
-                <MudItem xs="12" md="4">
-                    <MudGrid>
+                        @if (chart.IsRaw)
+                        {
+                            <MudPaper Class="pa-4 text-center" Style="max-width: 100%;">
+                                <MudText class="mud-donut-text mud-typography-body2" 
+                                         Style="white-space: normal; word-break: break-word;">
+                                    <b>Робот:</b>
+                                    @chart.RobotName
+                                </MudText>
 
-                        <MudItem xs="12">
-                            <MudText Align="Align.Center">Отчёты</MudText>
-                           
-                            <MudChart ChartType="ChartType.Pie"
-                                      Width="100%" Height="250px"
-                                      ChartSeries="@ReportValues.AsChartDataSet()"
-                                      ChartLabels="@ReportLabels" />
-                        </MudItem>
+                                <MudText 
+                                         class="mud-donut-text mud-typography-body2"
+                                         Style="white-space: normal; word-break: break-word;">
+                                    <b>Задача: </b>
+                                    @chart.Title
+                                </MudText>
 
-                        <MudItem xs="12">
-                            <MudText Align="Align.Center">Проверки</MudText>
-                         
-                            <MudChart ChartType="ChartType.Pie"
-                                      Width="100%" Height="250px"
-                                      ChartSeries="@ResultValues.AsChartDataSet()"
-                                      ChartLabels="@ResultLabels" />
-                        </MudItem>
+                                <MudText Typo="Typo.h6">
+                                    @chart.Total
+                                </MudText>
+                            </MudPaper>
+                        }
+                        else
+                        {
+                            <UniversalChart Data="chart" />
+                        }
 
-                    </MudGrid>
-                </MudItem>
+                    </MudItem>
+                }
 
-              
-                <MudItem xs="12" md="8">
-                    <MudText Align="Align.Center">Результаты</MudText>
-                    <MudChart ChartType="ChartType.Bar"
-                              Width="100%"
-                              Height="520px"
-                              ChartSeries="@CheckValues.AsChartDataSet()"
-                             ChartLabels="@CheckLabels"
-                              YAxisLines="true" />
-                </MudItem>
-
+                    
             </MudGrid>
         </MudItem>
+
     </MudGrid>
 </MudContainer>
 @code {
-    private RobotsUKONDetails? data;
- 
-    private string[] ReportLabels => data?.Reports.Select(x => x.Name).ToArray() ?? [];
-    private double[] ReportValues => data?.Reports.Select(x => (double)x.Count).ToArray() ?? [];
-   
-    private string[] CheckLabels => data?.Checks.Select(x => x.Name).ToArray() ?? [];
-    private double[] CheckValues => data?.Checks.Select(x => (double)x.Count).ToArray() ?? [];
-
-    private string[] ResultLabels => data?.Results.Select(x => x.Name).ToArray() ?? [];
-    private double[] ResultValues => data?.Results.Select(x => (double)x.Count).ToArray() ?? [];
     private int? _year;
     private int? _month;
     private int? _quarter;
+    private List<UniversalChartResponseV3> charts = [];
+    private int? _idRobot;
 
+    private async Task<IEnumerable<RobotDto>> SearchRobots(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return await api.GetAsync<List<RobotDto>>("api/autocomplete-robots");
+        }
+        return await api.GetAsync<List<RobotDto>>(
+            $"api/autocomplete-robots?search={value}"
+        );
+    }
     protected override async Task OnInitializedAsync()
     {
-        await LoadData();
+        await LoadCharts();
+    }
+    private async Task LoadCharts()
+    {
+        var query = new List<string>();
+
+        if (_idRobot.HasValue)
+            query.Add($"robotId={_idRobot}");
+
+        if (_year.HasValue)
+            query.Add($"year={_year}");
+
+        if (_month.HasValue)
+            query.Add($"month={_month}");
+
+        if (_quarter.HasValue)
+            query.Add($"quarter={_quarter}");
+
+        var url = "api/universal-chart-v3";
+
+        if (query.Any())
+            url += "?" + string.Join("&", query);
+
+        charts = await api.GetAsync<List<UniversalChartResponseV3>>(url);
+    }
+    private async Task OnRobotChanged(RobotDto robot)
+    {
+        _idRobot = robot?.Id;
+        await LoadCharts();
     }
 
     private async Task OnPeriodChanged(DialogPer.Periods periods)
@@ -75,33 +117,11 @@
         _year = periods.Year;
         _month = periods.Month;
         _quarter = periods.Quarter;
-        await LoadData();
-    }
 
-    private async Task PeriodFilter()
-    {
-
-        var options = new DialogOptions { CloseOnEscapeKey = true };
-        var dialoge = await DialogService.ShowAsync<DialogPer>($"{@ResForBodyPage.Period}", options);
+        await LoadCharts();
         StateHasChanged();
-        var changedPeriod = await dialoge.Result;
-        if (changedPeriod.Canceled) { StateHasChanged(); }
-        else { StateHasChanged(); }
-
     }
-    private async Task LoadData()
-    {
-        var query = new List<string>();
 
-        if (_year.HasValue) query.Add($"year={_year}");
-        if (_month.HasValue) query.Add($"month={_month}");
-        if (_quarter.HasValue) query.Add($"quarter={_quarter}");
 
-        var url = "api/RobotsUKON";
-
-        if (query.Any())
-            url += "?" + string.Join("&", query);
-
-        data = await api.GetAsync<RobotsUKONDetails>(url);
-    }
 }
+

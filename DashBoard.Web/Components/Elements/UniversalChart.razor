@@ -1,0 +1,61 @@
+﻿@inject HttpClient Http
+@inject Services.ApiService api
+
+
+<MudPaper Class="pa-4">
+
+    @if (Data is null)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <MudStack Spacing="2">
+
+            @if (Data.Total.HasValue)
+            {
+                <MudText><b>Робот:</b> @Data.RobotName</MudText>
+                <MudText><b>Задача:</b> @Data.Title</MudText>
+                <MudText><b>Сумма:</b> @Data.Total</MudText>
+            }
+
+            <MudChart ChartType="@Map(Data.Type)"
+                      ChartLabels="_labels"
+                      ChartSeries="_values.AsChartDataSet()"
+                      Height="@($"{height}px")" />
+
+        </MudStack>
+    }
+
+</MudPaper>
+@code {
+    [Parameter] public UniversalChartResponseV3 Data { get; set; }
+    [Parameter] public int height { get; set; } = 350;
+
+    private string[] _labels = [];
+    private double[] _values = [];
+
+    protected override void OnParametersSet()
+    {
+        if (Data?.Items != null)
+        {
+            _labels = Data.Items
+    .Select(x => $"{x.Key} - {x.Value}")
+    .ToArray();
+            _values = Data.Items.Select(x => x.Value).ToArray();
+        }
+        else
+        {
+            _labels = [];
+            _values = [];
+        }
+    }
+
+    private ChartType Map(ChartTypeRobot type) => type switch
+    {
+        ChartTypeRobot.Bar =>ChartType.Bar,
+        ChartTypeRobot.Pie =>ChartType.Pie,
+        ChartTypeRobot.Line =>ChartType.Line,
+        _ => ChartType.Bar
+    };
+}
