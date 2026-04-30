@@ -1,5 +1,4 @@
 ﻿using DashBoard.Api.Controllers;
-using DashBoard.Api.Services;
 using DashBoard.Lib.Data;
 using DashBoard.Lib.DTOs;
 using Microsoft.AspNetCore.Mvc;
@@ -13,9 +12,9 @@ using System.Text.Json;
 [Route("api/universal-chart-v3")]
 public class UniversalRobotController : BaseController
 {
-   private readonly ChartKeyNormaizer _form;
-    public UniversalRobotController(dashboardContext dashboard, ChartKeyNormaizer form) : base(dashboard) {
-     _form = form;
+   
+    public UniversalRobotController(dashboardContext dashboard) : base(dashboard) {
+     
     }
 
     [HttpGet]
@@ -160,7 +159,7 @@ block.value,
             }
             else
             {
-                var key = _form.Normalize(block, detailKey);
+                var key = detailKey;
 
                 var item = chart.Items.FirstOrDefault(x => x.Key == key);
 

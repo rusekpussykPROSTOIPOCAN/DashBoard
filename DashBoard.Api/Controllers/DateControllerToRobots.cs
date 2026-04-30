@@ -1,4 +1,4 @@
-﻿using DashBoard.Api.Services;
+﻿
 using DashBoard.Lib.Data;
 using DashBoard.Lib.DTOs;
 using Microsoft.AspNetCore.Mvc;
@@ -11,7 +11,7 @@ namespace DashBoard.Api.Controllers
 
     public class DateControllerToRobots : BaseController
     {
-        public DateControllerToRobots(dashboardContext dashboard, ChartKeyNormaizer form) : base(dashboard)
+        public DateControllerToRobots(dashboardContext dashboard) : base(dashboard)
         {
         }
 

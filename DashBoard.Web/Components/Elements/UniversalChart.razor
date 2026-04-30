@@ -1,6 +1,6 @@
 ﻿@inject HttpClient Http
 @inject Services.ApiService api
-
+@using NormalizeRobots
 
 <MudPaper Class="pa-4">
 
@@ -27,7 +27,7 @@
                         <MudTh>Значение</MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd>@NormalizeRobots.NormalizerRobots.Key(context.Key)</MudTd>
+                        <MudTd>@NormalizeRobots.NormalizerRobots.Normalizer(Data.Block, context.Key)</MudTd>
                         <MudTd>@context.Value</MudTd>
                     </RowTemplate>
                 </MudTable>
@@ -60,7 +60,7 @@
         {
             var items = Data.Items.ToList();
 
-            _labels = items.Select(x => NormalizeRobots.NormalizerRobots.Key(x.Key)).ToArray();
+            _labels = items.Select(x=>NormalizerRobots.Normalizer(Data.Block, x.Key)).ToArray();
             _values = items.Select(x => x.Value).ToArray();
         }
         else

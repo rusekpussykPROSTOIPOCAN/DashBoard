@@ -1,4 +1,4 @@
-using DashBoard.Api.Services;
+
 using DashBoard.Lib.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
-builder.Services.AddScoped<ChartKeyNormaizer>();
+
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? builder.Configuration["ConnectionStrings__DefaultConnection"];
 

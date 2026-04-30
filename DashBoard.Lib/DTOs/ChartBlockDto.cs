@@ -1,4 +1,6 @@
 ﻿
+using System.Net.Sockets;
+
 namespace DashBoard.Lib.DTOs
 {
     public class ChartBlockDto
@@ -8,3 +10,6 @@ namespace DashBoard.Lib.DTOs
         public Dictionary<string, double> Details { get; set; } = new();
     }
 }
+
+
+

@@ -15,7 +15,7 @@ services:
     networks:
       - dashboard-network
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+       - postgres_data:/var/lib/postgresql  
       
 
   api:
