@@ -11,24 +11,43 @@
     else
     {
         <MudStack Spacing="2">
-
-            @if (Data.Total.HasValue)
-            {
+            <AddItemsToChart Items="Data.Items" robotId="Data.RobotId" block="@Data.Block" OnSave="OnSave" DataResponse="Data"/>
                 <MudText><b>Робот:</b> @Data.RobotName</MudText>
-                <MudText><b>Задача:</b> @Data.Title</MudText>
+            <MudText><b>Задача: </b>@NormalizeRobots.NormalizerRobots.Block(Data.Block)</MudText>
                 <MudText><b>Сумма:</b> @Data.Total</MudText>
+           @if (Data.Items.Count <= 1)
+            {
             }
-
-            <MudChart ChartType="@Map(Data.Type)"
-                      ChartLabels="_labels"
-                      ChartSeries="_values.AsChartDataSet()"
-                      Height="@($"{height}px")" />
+            else if (Data.Type == ChartTypeRobot.Table)
+            {
+         
+                <MudTable Items="Data.Items">
+                    <HeaderContent>
+                        <MudTh>Название</MudTh>
+                        <MudTh>Значение</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@NormalizeRobots.NormalizerRobots.Key(context.Key)</MudTd>
+                        <MudTd>@context.Value</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+            else
+            {
+            
+                <MudChart ChartType="@Map(Data.Type)"
+                          ChartLabels="_labels"
+                          ChartSeries="_values.AsChartDataSet()"
+                          Height="@($"{height}px")" />
+            }
 
         </MudStack>
     }
 
 </MudPaper>
 @code {
+
+    [Parameter] public EventCallback OnSave { get; set; }
     [Parameter] public UniversalChartResponseV3 Data { get; set; }
     [Parameter] public int height { get; set; } = 350;
 
@@ -39,10 +58,10 @@
     {
         if (Data?.Items != null)
         {
-            _labels = Data.Items
-    .Select(x => $"{x.Key} - {x.Value}")
-    .ToArray();
-            _values = Data.Items.Select(x => x.Value).ToArray();
+            var items = Data.Items.ToList();
+
+            _labels = items.Select(x => NormalizeRobots.NormalizerRobots.Key(x.Key)).ToArray();
+            _values = items.Select(x => x.Value).ToArray();
         }
         else
         {

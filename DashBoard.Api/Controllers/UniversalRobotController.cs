@@ -5,7 +5,9 @@ using DashBoard.Lib.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using NpgsqlTypes;
 using System.Data;
+using System.Text.Json;
 
 [ApiController]
 [Route("api/universal-chart-v3")]
@@ -26,17 +28,23 @@ public class UniversalRobotController : BaseController
     {
         var sql = @" 
 SELECT
-r.name as robot_name,
-    block.key AS block,
-    block.value->>'type' AS type,
+    r.id as robot_id,
+    r.name as robot_name,
 
-    MAX((block.value->>'сумма')::int) AS total,
+    block.key AS block,
+   COALESCE(
+    block.value->>'Type',
+    block.value->>'type'
+) AS type,
 
     detail.key AS detail_key,
 
     SUM(
+       CASE
+    WHEN detail.key IS NULL
+        THEN (block.value->>'сумма')::int
+    ELSE
         CASE 
-            WHEN detail.value IS NULL THEN 0
             WHEN jsonb_typeof(detail.value) = 'number'
                 THEN detail.value::int
             WHEN jsonb_typeof(detail.value) = 'string'
@@ -44,25 +52,42 @@ r.name as robot_name,
                 THEN (detail.value::text)::int
             ELSE 0
         END
+END
     ) AS detail_value
 
 FROM robots_analitic ra
+
 CROSS JOIN LATERAL jsonb_each(ra.data_analize) AS block(key, value)
 
 LEFT JOIN LATERAL jsonb_each(
-    COALESCE(block.value->'детали', '{}'::jsonb)
+   COALESCE(
+    block.value->'Details',
+    block.value->'детали',
+    '{}'::jsonb
+)
 ) AS detail ON true
+
 LEFT JOIN robots r ON r.id = ra.idrobots
-WHERE (@year::int IS NULL OR EXTRACT(YEAR FROM ra.datestatistic) = @year::int)
-  AND (@month::int IS NULL OR EXTRACT(MONTH FROM ra.datestatistic) = @month::int)
-  AND (@quarter::int IS NULL OR EXTRACT(QUARTER FROM ra.datestatistic) = @quarter::int)
-  AND (@robotId::int IS NULL OR ra.idrobots = @robotId)
-  AND EXTRACT(DAY FROM ra.datestatistic) <> 31
+
+WHERE 
+     
+   EXTRACT(YEAR FROM ra.datestatistic)::int =
+COALESCE(@year, EXTRACT(YEAR FROM ra.datestatistic)::int)
+
+AND EXTRACT(MONTH FROM ra.datestatistic)::int =
+COALESCE(@month, EXTRACT(MONTH FROM ra.datestatistic)::int)
+
+AND EXTRACT(QUARTER FROM ra.datestatistic)::int =
+COALESCE(@quarter, EXTRACT(QUARTER FROM ra.datestatistic)::int)
+
+AND ra.idrobots =
+COALESCE(@robotId, ra.idrobots)
 
 GROUP BY
- r.name,
+    r.id,
+    r.name,
     block.key,
-    block.value->>'type',
+block.value,
     detail.key;
 ";
 
@@ -83,11 +108,12 @@ GROUP BY
 
         while (await reader.ReadAsync())
         {
-            var robotName = reader.IsDBNull(0) ? "Без робота" : reader.GetString(0);
-            var rawBlock = reader.GetString(1);
-            var block = _form.NormalizeBlock(rawBlock);
-            var type = reader.IsDBNull(2) ? "Bar" : reader.GetString(2);
-            var total = reader.IsDBNull(3) ? 0 : reader.GetInt32(3);
+            var robotID = reader.IsDBNull(0) ? 0 : reader.GetInt32(0);
+            var robotName = reader.IsDBNull(1) ? "Без робота" : reader.GetString(1);
+            var rawBlock = reader.GetString(2);
+            var block = rawBlock;
+            var type = reader.IsDBNull(3) ? "Bar" : reader.GetString(3);
+           
             var detailKey = reader.IsDBNull(4) ? null : reader.GetString(4);
             var value = reader.IsDBNull(5) ? 0 : reader.GetInt32(5);
 
@@ -95,6 +121,7 @@ GROUP BY
             {
                 chart = new UniversalChartResponseV3
                 {
+                    RobotId = robotID,
                     RobotName = robotName,
                     Block = block,
                     Title = block,
@@ -102,7 +129,7 @@ GROUP BY
                         ? t
                         : ChartTypeRobot.Bar,
                     Items = new(),
-                    Total = total
+                    Total = 0
                 };
                 
 
@@ -111,7 +138,7 @@ GROUP BY
 
             if (!string.IsNullOrEmpty(detailKey))
             {
-                var key = _form.Normalize(block, detailKey);
+                var key = detailKey;
 
                 var item = chart.Items.FirstOrDefault(x => x.Key == key);
                 
@@ -129,14 +156,88 @@ GROUP BY
                     item.Value += value;
                 }
 
-                chart.Total = total;
+                chart.Total +=value;
             }
-        foreach (var item in map.Values)
-        {
-                chart.IsRaw = !chart.Items.Any(x => x.Value > 0);
+            else
+            {
+                var key = _form.Normalize(block, detailKey);
+
+                var item = chart.Items.FirstOrDefault(x => x.Key == key);
+
+                if (item == null)
+                {
+                    chart.Items.Add(new UniversalChartItemV3
+                    {
+                        Key = key,
+                        Value = value
+                    });
+                }
+                else
+                {
+                    item.Value += value;
+                }
+
+                chart.Total += value;
             }
         }
+            foreach (var item in map.Values)
+        {
+                item.IsRaw = !item.Items.Any(x => x.Value > 0);
+            }
         return map.Values.ToList();
+    }
+
+
+    [HttpPost("update")]
+    public async Task<IActionResult> Update([FromBody] UpdateChartRequest update)
+    {
+
+        await using var conn = _dashboard.Database.GetDbConnection();
+        await conn.OpenAsync();
+
+        await using var cmd = (NpgsqlCommand)conn.CreateCommand();
+
+        // 1. собираем details
+        var details = update.Items
+            .GroupBy(x => x.Key)
+            .ToDictionary(
+                x => x.Key,
+                x => x.Sum(v => v.Value)
+            );
+
+        // 2. собираем блок
+        var blockObject = new ChartBlockDto
+        {
+            Type = update.Type, 
+            Sum = details.Sum(x => x.Value),
+            Details = details
+        };
+
+        var json = JsonSerializer.Serialize(blockObject);
+
+        // 3. обновление
+        cmd.CommandText = @"
+UPDATE robots_analitic
+SET data_analize = jsonb_set(
+    COALESCE(data_analize, '{}'::jsonb),
+    ARRAY[@block],
+    @json::jsonb,
+    true
+)
+WHERE idrobots = @robotId
+AND EXTRACT(YEAR FROM datestatistic) = @year
+AND EXTRACT(MONTH FROM datestatistic) = @month;
+";
+
+        cmd.Parameters.Add("block", NpgsqlDbType.Text).Value = update.Block;
+        cmd.Parameters.Add("json", NpgsqlDbType.Jsonb).Value = json;
+        cmd.Parameters.Add("robotId", NpgsqlDbType.Integer).Value = update.RobotId;
+        cmd.Parameters.Add("year", NpgsqlDbType.Integer).Value = update.Year;
+        cmd.Parameters.Add("month", NpgsqlDbType.Integer).Value = update.Month;
+
+        await cmd.ExecuteNonQueryAsync();
+
+        return Ok();
     }
 
 }

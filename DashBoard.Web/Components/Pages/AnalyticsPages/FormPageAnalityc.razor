@@ -291,12 +291,12 @@
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
         {
             Snackbar.Add("Ошибка 400: Неверные данные. Проверьте заполнение формы.", Severity.Error);
-            Console.WriteLine("Bad Request Details: " + ex.Message);
+            
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
-            Console.WriteLine(ex);
+            
         }
     }
 }

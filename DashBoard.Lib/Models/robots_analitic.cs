@@ -9,7 +9,7 @@ public partial class robots_analitic
 
     public int? idrobots { get; set; }
 
-    public DateOnly? datestatistic { get; set; }
+    public DateOnly datestatistic { get; set; }
 
     public int? count_application { get; set; }
 

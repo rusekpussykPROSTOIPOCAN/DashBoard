@@ -11,6 +11,7 @@ namespace DashBoard.Lib.DTOs
 
     public class UniversalChartResponseV3
     {
+        public int RobotId { get; set; }
         public string RobotName { get; set; }
         public string Block { get; set; }
         public string Title { get; set; } = default!;
@@ -30,9 +31,20 @@ namespace DashBoard.Lib.DTOs
         public double Value { get; set; }
     }
 
+    public class UpdateChartRequest
+    {
+        public int Year { get; set; }
+        public int Month { get; set; }
+        public int RobotId { get; set; }
+        public string Block { get; set;} = default!;
+        public ChartTypeRobot Type { get; set; } 
+        public List<UniversalChartItemV3> Items { get; set; } = new();
+    }
+
     public enum ChartTypeRobot { 
         Bar,
         Pie,
-        Line
+        Line,
+        Table
     }
 }
