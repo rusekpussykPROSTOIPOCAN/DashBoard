@@ -1,52 +1,12 @@
 ﻿@inject Services.ApiService api
 @inject ISnackbar Snackbar
-<MudButton Variant="Variant.Filled" OnClick="ToggleFilter">
+@inject IDialogService DialogService
+
+<MudButton Variant="Variant.Filled" OnClick="OpenDialog">
     <MudIcon Icon="@Icons.Material.Filled.Edit" />
 </MudButton>
-<MudPopover Open="_open" AnchorOrigin="Origin.BottomCenter">
-    <MudPaper Class="pa-4">
-        <MudList T="IGrouping<int, RobotPeriods>" Dense="true">
-            @foreach (var year in GroupByYears)
-            {
-                <MudListItem Text="@year.Key.ToString()">
-                    <NestedList>
-                        @foreach (var month in year)
-                        {
-                            <MudListItem Text="@month.Month.ToString()"
-                                         OnClick="@(() => Select(month))" />
-                        }
-                    </NestedList>
-                </MudListItem>
-            }
-        </MudList>
-        @if (selected.Month > 0)
-        {
-            
-            @if (items?.Any() == true)
-            {
 
-          
-                @foreach (var item in items)
-                {
-                    <MudText>@item.Key</MudText>
-                    <MudTextField T="double" @bind-Value="item.Value" />
-                }
-
-            
-           
-            }
-            else
-            {
-                <MudText>Нет данных</MudText>
-            }
-        }
-
-        <MudButton OnClick="Submit">Применить</MudButton>
-    </MudPaper>
-
-</MudPopover>
 @code {
-
     private List<RobotPeriods>? Periods = new();
     private RobotPeriods selected = new();
     private IEnumerable<IGrouping<int, RobotPeriods>> GroupByYears => Periods.GroupBy(x => x.Year);
@@ -57,53 +17,33 @@
     [Parameter] public UniversalChartResponseV3 DataResponse { get; set; } = new();
     [Parameter] public int robotId { get; set; }
     [Parameter] public string block { get; set; } = "";
-    private bool _open;
 
-    private async Task Select(RobotPeriods period)
+    private async Task OpenDialog()
     {
+        var parameters = new DialogParameters
+        {
+            { "Periods", Periods },
+            { "RobotId", robotId },
+            { "Block", block },
+            { "DataResponse", DataResponse },
+            { "Items", items },
+            { "GroupByYears", GroupByYears }
+        };
 
-        selected = period;
+        var dialog = await DialogService.ShowAsync<EditChartDialog>("Редактирование данных", parameters);
+        var result = await dialog.Result;
 
-        var query = new List<string>();
-
-        if (robotId != 0)
-            query.Add($"robotId={robotId}");
-
-        if (selected.Year > 0)
-            query.Add($"year={selected.Year}");
-
-        if (selected.Month > 0)
-            query.Add($"month={selected.Month}");
-
-        var url = "api/universal-chart-v3";
-
-        if (query.Any())
-            url += "?" + string.Join("&", query);
-
-        respounse = await api.GetAsync<List<UniversalChartResponseV3>>(url);
-
-        key = respounse.FirstOrDefault()?.Title;
-
-        items = respounse?
-     .Where(x => x.Block == block)
-     .SelectMany(x => x.Items ?? new())
-     .ToList()
-     ?? new();
-        Snackbar.Add($"{selected.Year} {selected.Month} {robotId}", Severity.Success);
-
-       
-     
+        if (!result.Canceled)
+        {
+            await OnSave.InvokeAsync();
+        }
     }
-    private void ToggleFilter()
-    {
-        _open = !_open;
-    }
+
     private async Task LoadPeriods()
     {
-
         Periods = await api.GetAsync<List<RobotPeriods>>(
-          $"/api/date-controller?idRobot={robotId}"
-      );
+            $"/api/date-controller?idRobot={robotId}"
+        );
         key = respounse.FirstOrDefault()?.Title;
     }
 
@@ -111,36 +51,4 @@
     {
         await LoadPeriods();
     }
-
-    private async Task Submit()
-    {
-        var update = new UpdateChartRequest
-        {
-            Type = @DataResponse.Type,
-            RobotId = robotId,
-            Block = block,
-            Items = items,
-            Year = selected.Year,
-            Month = selected.Month
-        };
-        try
-        {
-
-            await api.PostAsync<object>("api/universal-chart-v3/update", update);
-           
-            await OnSave.InvokeAsync();
-            Snackbar.Add("Данные успешно изменены", Severity.Success);
-        }
-
-        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
-        {
-            Snackbar.Add("Ошибка 400: Неверные данные. Проверьте форму", Severity.Error);
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
-        }
-
-    }
-
 }

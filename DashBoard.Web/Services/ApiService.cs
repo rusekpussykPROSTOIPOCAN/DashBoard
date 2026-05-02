@@ -1,6 +1,7 @@
 ﻿using DashBoard.Lib.Models;
 using System.Text;
 using System.Text.Json;
+using static System.Net.WebRequestMethods;
 namespace DashBoard.Web.Services
 {
     public class ApiService
@@ -10,9 +11,20 @@ namespace DashBoard.Web.Services
         {
             _httpClient = httpClient;
         }
+        public async Task<T> PutAsync<T>(string url, object data)
+        {
+            var response = await _httpClient.PutAsJsonAsync(url, data);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<T>();
+        }
         public async Task<T?> GetAsync<T>(string endpoint)
         {
             return await _httpClient.GetFromJsonAsync<T>(endpoint);
+        }
+        public async Task DeleteAsync(string url)
+        {
+            var response = await _httpClient.DeleteAsync(url);
+            response.EnsureSuccessStatusCode();
         }
         public async Task<T?> PostAsync<T>(string endpoint, object data)
         {

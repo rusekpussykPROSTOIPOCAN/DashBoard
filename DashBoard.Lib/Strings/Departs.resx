@@ -141,4 +141,10 @@
   <data name="Home" xml:space="preserve">
     <value>Главная страница отдела</value>
   </data>
+  <data name="RobotForm" xml:space="preserve">
+    <value>Добавление нового робота</value>
+  </data>
+  <data name="EditRobot" xml:space="preserve">
+    <value>Редактирование робота</value>
+  </data>
 </root>

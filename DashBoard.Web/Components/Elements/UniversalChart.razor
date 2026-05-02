@@ -1,6 +1,7 @@
 ﻿@inject HttpClient Http
 @inject Services.ApiService api
 @using NormalizeRobots
+@inject ISnackbar Snackbar
 
 <MudPaper Class="pa-4">
 
@@ -11,16 +12,17 @@
     else
     {
         <MudStack Spacing="2">
-            <AddItemsToChart Items="Data.Items" robotId="Data.RobotId" block="@Data.Block" OnSave="OnSave" DataResponse="Data"/>
-                <MudText><b>Робот:</b> @Data.RobotName</MudText>
+            <AddItemsToChart Items="Data.Items" robotId="Data.RobotId" block="@Data.Block" OnSave="HandleSave" DataResponse="Data" />
+            <MudText><b>Робот:</b> @Data.RobotName</MudText>
             <MudText><b>Задача: </b>@NormalizeRobots.NormalizerRobots.Block(Data.Block)</MudText>
-                <MudText><b>Сумма:</b> @Data.Total</MudText>
-           @if (Data.Items.Count <= 1)
+            <MudText><b>Сумма:</b> @Data.Total</MudText>
+            
+            @if (Data.Items.Count <= 1)
             {
+                // Пусто
             }
             else if (Data.Type == ChartTypeRobot.Table)
             {
-         
                 <MudTable Items="Data.Items">
                     <HeaderContent>
                         <MudTh>Название</MudTh>
@@ -34,33 +36,35 @@
             }
             else
             {
-            
                 <MudChart ChartType="@Map(Data.Type)"
                           ChartLabels="_labels"
                           ChartSeries="_values.AsChartDataSet()"
                           Height="@($"{height}px")" />
             }
-
+            
+            <MudIconButton OnClick="() => DeleteRobot(Data.RobotId)"
+                           Icon="@Icons.Material.Filled.Delete"
+                           Disabled="_isDeleting" />
         </MudStack>
     }
 
 </MudPaper>
-@code {
 
+@code {
     [Parameter] public EventCallback OnSave { get; set; }
     [Parameter] public UniversalChartResponseV3 Data { get; set; }
     [Parameter] public int height { get; set; } = 350;
 
     private string[] _labels = [];
     private double[] _values = [];
+    private bool _isDeleting;
 
     protected override void OnParametersSet()
     {
         if (Data?.Items != null)
         {
             var items = Data.Items.ToList();
-
-            _labels = items.Select(x=>NormalizerRobots.Normalizer(Data.Block, x.Key)).ToArray();
+            _labels = items.Select(x => NormalizerRobots.Normalizer(Data.Block, x.Key)).ToArray();
             _values = items.Select(x => x.Value).ToArray();
         }
         else
@@ -72,9 +76,42 @@
 
     private ChartType Map(ChartTypeRobot type) => type switch
     {
-        ChartTypeRobot.Bar =>ChartType.Bar,
-        ChartTypeRobot.Pie =>ChartType.Pie,
-        ChartTypeRobot.Line =>ChartType.Line,
+        ChartTypeRobot.Bar => ChartType.Bar,
+        ChartTypeRobot.Pie => ChartType.Pie,
+        ChartTypeRobot.Line => ChartType.Line,
         _ => ChartType.Bar
     };
+
+    private async Task HandleSave()
+    {
+        await OnSave.InvokeAsync();
+    }
+
+    private async Task DeleteRobot(int id)
+    {
+        _isDeleting = true;
+        try
+        {
+            await api.DeleteAsync($"api/robot-delete/{id}");
+            Snackbar.Add("Робот удален", Severity.Success);
+        
+            
+            if (OnSave.HasDelegate)
+            {
+                await OnSave.InvokeAsync();
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add($"Ошибка при удалении: {ex.Message}", Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка при удалении: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isDeleting = false;
+        }
+    }
 }

@@ -2,6 +2,9 @@
 @using System.Net.Http.Json
 @inject IDialogService DialogService
 @inject Services.ApiService api
+@using MudBlazor
+@inject HttpClient httpClient
+@inject ISnackbar Snackbar
 <MudContainer Fixed="true" MaxWidth="MaxWidth.Large">
 
     <MudGrid>
@@ -40,6 +43,8 @@
         <MudItem xs="12" md="9">
           
             <MudDataGrid T="ViolationDto"
+                         
+                         
                          Filterable="true"
                          Items="@Violations"
                          ColumnResizeMode="ResizeMode.Column">

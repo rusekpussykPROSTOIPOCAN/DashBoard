@@ -1,0 +1,390 @@
+﻿@page "/AddRobot"
+@page "/EditRobot/{RobotId:int}"
+@inject Services.ApiService api
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>@(isEditMode ? Departs.EditRobot : Departs.RobotForm)</PageTitle>
+<MudContainer MaxWidth="MaxWidth.Medium">
+    <MudItem Class="my-5">
+        
+        <MudText Typo="Typo.h4" Class="mb-5">
+            @(isEditMode ? "Редактирование робота" : "Добавление нового робота")
+        </MudText>
+
+        <MudGrid Spacing="6">
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="addRobots.Name"
+                              Clearable="true"
+                              T="string"
+                              Label="Название робота"
+                              MaxLength="70"
+                              Disabled="@isLoading" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="addRobots.ShortName"
+                              Clearable="true"
+                              T="string"
+                              Label="Короткое название робота"
+                              MaxLength="20"
+                              Disabled="@isLoading" />
+            </MudItem>
+        </MudGrid>
+
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudButton Class="my-5"
+                           OnClick="AddPeriod"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           Disabled="@isLoading">
+                    Добавить период
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+
+        @for (int periodIndex = 0; periodIndex < periods.Count; periodIndex++)
+        {
+            var period = periods[periodIndex];
+            var currentPeriodIndex = periodIndex;
+
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+                <MudGrid>
+                    <MudItem xs="12" sm="8">
+                        <MudDatePicker @bind-Date="period.Month"
+                                       Label="Месяц"
+                                       OpenTo="OpenTo.Year"
+                                       DateFormat="yyyy-MM"
+                                       Views="new[] { CalendarView.Year, CalendarView.Month }"
+                                       Disabled="@isLoading" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4" Class="d-flex justify-end align-center">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Color="Color.Error"
+                                       OnClick="@(() => RemovePeriod(currentPeriodIndex))"
+                                       Disabled="@isLoading" />
+                    </MudItem>
+                </MudGrid>
+
+                <MudButton Class="my-5"
+                           OnClick="() => AddChart(period)"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           Disabled="@isLoading">
+                    Добавить показатель
+                </MudButton>
+
+                @for (int chartIndex = 0; chartIndex < period.Charts.Count; chartIndex++)
+                {
+                    var chart = period.Charts[chartIndex];
+                    var currentChartIndex = chartIndex;
+
+                    <MudPaper Class="pa-3 mb-3" Elevation="1" Outlined="true">
+                        <MudGrid Spacing="6">
+                            <MudItem xs="12" sm="4">
+                                <MudTextField @bind-Value="chart.Title"
+                                              Clearable="true"
+                                              T="string"
+                                              Label="Показатель"
+                                              Variant="Variant.Outlined"
+                                              MaxLength="70"
+                                              Disabled="@isLoading" />
+                            </MudItem>
+                            <MudItem Class="my-3" xs="12" sm="5">
+                                <MudSelect Label="Тип диаграммы"
+                                           @bind-Value="chart.Type"
+                                           T="ChartTypeRobot"
+                                           Disabled="@isLoading">
+                                    @foreach (var type in Enum.GetValues(typeof(ChartTypeRobot)))
+                                    {
+                                        <MudSelectItem Value="@((ChartTypeRobot)type)">@type.ToString()</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="2">
+                                <MudText Class="my-5">Сумма: @chart.Sum.ToString("F2")</MudText>
+                            </MudItem>
+                            <MudItem xs="12" sm="1" Class="d-flex justify-end">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Color="Color.Error"
+                                               OnClick="@(() => RemoveChart(period, currentChartIndex))"
+                                               Disabled="@isLoading" />
+                            </MudItem>
+                        </MudGrid>
+
+                       
+                        <MudGrid>
+                            <MudItem xs="12" sm="5">
+                                <MudTextField @bind-Value="chart.NewDetail.DetailName"
+                                              Label="Деталь"
+                                              T="string"
+                                              Disabled="@isLoading" />
+                            </MudItem>
+                            <MudItem xs="12" sm="5">
+                                <MudTextField @bind-Value="chart.NewDetail.Value"
+                                              Label="Значение"
+                                              T="double"
+                                              Disabled="@isLoading" />
+                            </MudItem>
+                            <MudItem xs="12" sm="2">
+                                <MudButton OnClick="() => AddDetail(chart)"
+                                           Disabled="@isLoading">
+                                    Добавить
+                                </MudButton>
+                            </MudItem>
+                        </MudGrid>
+
+                      
+                        @foreach (var detail in chart.Details.ToList())
+                        {
+                            <MudGrid>
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField Value="@detail.Key"
+                                                  ValueChanged="@((string newKey) => UpdateDetail(chart, detail.Key, newKey, detail.Value))"
+                                                  Clearable="true"
+                                                  T="string"
+                                                  Label="Деталь"
+                                                  Variant="Variant.Outlined"
+                                                  MaxLength="70"
+                                                  Disabled="@isLoading" />
+                                </MudItem>
+                                <MudItem xs="12" sm="5">
+                                    <MudTextField Value="@detail.Value"
+                                                  ValueChanged="@((double newValue) => UpdateDetail(chart, detail.Key, detail.Key, newValue))"
+                                                  Clearable="true"
+                                                  T="double"
+                                                  Label="Значение"
+                                                  Variant="Variant.Outlined"
+                                                  Disabled="@isLoading" />
+                                </MudItem>
+                                <MudItem xs="12" sm="1">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   OnClick="@(() => RemoveDetail(chart, detail.Key))"
+                                                   Color="Color.Error"
+                                                   Disabled="@isLoading" />
+                                </MudItem>
+                            </MudGrid>
+                        }
+                    </MudPaper>
+                }
+            </MudPaper>
+        }
+
+        <MudItem xs="12" class="d-flex justify-end gap-2">
+            @if (isEditMode)
+            {
+                <MudButton OnClick="LoadRobot"
+                           Disabled="@isLoading">
+                    Сбросить изменения
+                </MudButton>
+            }
+            <MudButton OnClick="@(isEditMode ? UpdateRobot : CreateRobot)"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Disabled="@isLoading">
+                @(isLoading ? "Сохранение..." : (isEditMode ? "Обновить" : "Создать"))
+            </MudButton>
+        </MudItem>
+    </MudItem>
+</MudContainer>
+
+@code {
+    [Parameter]
+    public int RobotId { get; set; }
+
+    private AddRobotDTO addRobots = new();
+    private List<PeriodGroup> periods = new();
+    private DateTime? currentMonth;
+    private bool isEditMode = false;
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+       
+        isEditMode = RobotId > 0;
+        
+        if (isEditMode)
+        {
+            await LoadRobot();
+        }
+    }
+
+    private async Task LoadRobot()
+    {
+        try
+        {
+            isLoading = true;
+            var robotData = await api.GetAsync<EditRobot>($"api/robot-add/{RobotId}");
+            
+            addRobots.Name = robotData.Name;
+            addRobots.ShortName = robotData.ShortName;
+            
+            periods.Clear();
+            foreach (var periodDto in robotData.Periods)
+            {
+                var period = new PeriodGroup
+                {
+                    Month = periodDto.Month
+                };
+                
+                foreach (var chartDto in periodDto.Charts)
+                {
+                    var chart = new NewChartBlockDto
+                    {
+                        Title = chartDto.Title,
+                        Type = chartDto.Type,
+                        Details = new Dictionary<string, double>(chartDto.Details),
+                        NewDetail = new DetailItem()
+                    };
+                    RecalculateSum(chart);
+                    period.Charts.Add(chart);
+                }
+                
+                periods.Add(period);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Ошибка загрузки данных робота", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void RemovePeriod(int index)
+    {
+        if (periods.Count > 0)
+        {
+            periods.RemoveAt(index);
+            Snackbar.Add("Период удален", Severity.Info);
+        }
+    }
+
+    private void RemoveChart(PeriodGroup period, int chartIndex)
+    {
+        if (period.Charts.Count > 0)
+        {
+            period.Charts.RemoveAt(chartIndex);
+            Snackbar.Add("Показатель удален", Severity.Info);
+        }
+    }
+
+    private void AddPeriod()
+    {
+        var newPeriod = new PeriodGroup
+        {
+            Month = currentMonth
+        };
+        
+        if (periods.Any())
+        {
+            var lastPeriod = periods.Last();
+            foreach (var chart in lastPeriod.Charts)
+            {
+                var newChart = new NewChartBlockDto
+                {
+                    Title = chart.Title,
+                    Type = chart.Type,
+                    Details = new Dictionary<string, double>(chart.Details),
+                    NewDetail = new DetailItem()
+                };
+                RecalculateSum(newChart);
+                newPeriod.Charts.Add(newChart);
+            }
+        }
+        
+        periods.Add(newPeriod);
+        currentMonth = null;
+        Snackbar.Add("Период добавлен", Severity.Success);
+    }
+
+    private void AddChart(PeriodGroup period)
+    {
+        period.Charts.Add(new NewChartBlockDto { NewDetail = new DetailItem() });
+    }
+
+    private void AddDetail(NewChartBlockDto chart)
+    {
+        if (!string.IsNullOrWhiteSpace(chart.NewDetail.DetailName))
+        {
+            chart.Details[chart.NewDetail.DetailName] = chart.NewDetail.Value;
+            chart.NewDetail = new DetailItem();
+            RecalculateSum(chart);
+            Snackbar.Add("Деталь добавлена", Severity.Success);
+        }
+    }
+
+    private void RecalculateSum(NewChartBlockDto chart)
+    {
+        chart.Sum = chart.Details.Values.Sum();
+    }
+
+    private void UpdateDetail(NewChartBlockDto chart, string oldKey, string newKey, double newValue)
+    {
+        chart.Details.Remove(oldKey);
+        chart.Details[newKey] = newValue;
+        RecalculateSum(chart);
+    }
+
+    private void RemoveDetail(NewChartBlockDto chart, string key)
+    {
+        chart.Details.Remove(key);
+        RecalculateSum(chart);
+    }
+
+    private async Task CreateRobot()
+    {
+        try
+        {
+            isLoading = true;
+            var request = new CreateRobotRequest
+            {
+                Robot = addRobots,
+                Periods = periods
+            };
+
+            var response = await api.PostAsync<object>("api/robot-add", request);
+            Snackbar.Add("Робот успешно создан", Severity.Success);
+            
+           
+            addRobots = new AddRobotDTO();
+            periods.Clear();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка создания робота: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task UpdateRobot()
+    {
+        try
+        {
+            isLoading = true;
+            var request = new UpdateRobotRequest
+            {
+                RobotId = RobotId,
+                Robot = addRobots,
+                Periods = periods
+            };
+
+            await api.PutAsync<object>($"api/robot-add/robot-update/{RobotId}", request);
+            Snackbar.Add("Робот успешно обновлен", Severity.Success);
+            
+          
+            await LoadRobot();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка обновления робота: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

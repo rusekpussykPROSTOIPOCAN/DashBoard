@@ -97,6 +97,15 @@ namespace DashBoard.Lib.Strings {
         }
         
         /// <summary>
+        ///   Ищет локализованную строку, похожую на Редактирование робота.
+        /// </summary>
+        public static string EditRobot {
+            get {
+                return ResourceManager.GetString("EditRobot", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Ищет локализованную строку, похожую на Главная страница отдела.
         /// </summary>
         public static string Home {
@@ -120,6 +129,15 @@ namespace DashBoard.Lib.Strings {
         public static string overflights {
             get {
                 return ResourceManager.GetString("overflights", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Ищет локализованную строку, похожую на Добавление нового робота.
+        /// </summary>
+        public static string RobotForm {
+            get {
+                return ResourceManager.GetString("RobotForm", resourceCulture);
             }
         }
         

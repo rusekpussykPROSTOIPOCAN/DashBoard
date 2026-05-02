@@ -1,0 +1,116 @@
+﻿@inject Services.ApiService api
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudList T="IGrouping<int, RobotPeriods>" Dense="true">
+            @foreach (var year in GroupByYears)
+            {
+                <MudListItem Text="@year.Key.ToString()">
+                    <NestedList>
+                        @foreach (var month in year)
+                        {
+                            <MudListItem Text="@month.Month.ToString()"
+                                         OnClick="@(() => Select(month))" />
+                        }
+                    </NestedList>
+                </MudListItem>
+            }
+        </MudList>
+
+        @if (selected.Month > 0)
+        {
+            @if (Items?.Any() == true)
+            {
+                @foreach (var item in Items)
+                {
+                    <MudText>@item.Key</MudText>
+                    <MudTextField T="double" @bind-Value="item.Value" />
+                }
+            }
+            else
+            {
+                <MudText>Нет данных</MudText>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Отмена</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Применить</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public List<RobotPeriods>? Periods { get; set; }
+    [Parameter] public int RobotId { get; set; }
+    [Parameter] public string Block { get; set; } = "";
+    [Parameter] public UniversalChartResponseV3 DataResponse { get; set; } = new();
+    [Parameter] public List<UniversalChartItemV3> Items { get; set; } = new();
+    [Parameter] public IEnumerable<IGrouping<int, RobotPeriods>> GroupByYears { get; set; }
+
+    private RobotPeriods selected = new();
+    private List<UniversalChartResponseV3> respounse = new();
+
+    private async Task Select(RobotPeriods period)
+    {
+        selected = period;
+
+        var query = new List<string>();
+
+        if (RobotId != 0)
+            query.Add($"robotId={RobotId}");
+        if (selected.Year > 0)
+            query.Add($"year={selected.Year}");
+        if (selected.Month > 0)
+            query.Add($"month={selected.Month}");
+
+        var url = "api/universal-chart-v3";
+        if (query.Any())
+            url += "?" + string.Join("&", query);
+
+        respounse = await api.GetAsync<List<UniversalChartResponseV3>>(url);
+
+        Items = respounse?
+            .Where(x => x.Block == Block)
+            .SelectMany(x => x.Items ?? new())
+            .ToList()
+            ?? new();
+
+    }
+
+    private async Task Submit()
+    {
+        var update = new UpdateChartRequest
+        {
+            Type = DataResponse.Type,
+            RobotId = RobotId,
+            Block = Block,
+            Items = Items,
+            Year = selected.Year,
+            Month = selected.Month
+        };
+
+        try
+        {
+            await api.PostAsync<object>("api/universal-chart-v3/update", update);
+            Snackbar.Add("Данные успешно изменены", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+        {
+            Snackbar.Add("Ошибка 400: Неверные данные. Проверьте форму", Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}
