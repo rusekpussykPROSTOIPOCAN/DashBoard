@@ -1,9 +1,7 @@
 ﻿using DashBoard.Lib.Data;
 using DashBoard.Lib.DTOs;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 
 namespace DashBoard.Api.Controllers
 {
@@ -17,55 +15,89 @@ namespace DashBoard.Api.Controllers
 
         [HttpGet("getTableAnalitic")]
         public async Task<IActionResult> GetDashboardData(
-             DateTime? dateFrom = null,
-             DateTime? dateTo = null,
-             int? year = null,
-             int? month = null,
-             int? quarter = null)
+            DateTime? dateFrom = null,
+            DateTime? dateTo = null,
+            int? year = null,
+            int? month = null,
+            int? quarter = null)
         {
-            var result = await _dashboard
-    .Set<JsonResultDto>()
-    .FromSqlRaw(
-        @"SELECT get_dashboard_data(
-                {0}::timestamp,
-                {1}::timestamp,
-                {2}::int,
-                {3}::int,
-                {4}::int
-            ) AS ""Data""",
-        dateFrom ?? (object)DBNull.Value,
-        dateTo ?? (object)DBNull.Value,
-        year ?? (object)DBNull.Value,
-        month ?? (object)DBNull.Value,
-        quarter ?? (object)DBNull.Value
-    )
-    .AsNoTracking()
-    .FirstOrDefaultAsync();
-
-            if (result?.Data == null || string.IsNullOrWhiteSpace(result.Data))
-            {
-                return Ok(new AnaliticPageDTO());
-            }
-
-            AnaliticPageDTO? data;
-
             try
             {
-                data = JsonSerializer.Deserialize<AnaliticPageDTO>(
-                    result.Data,
-                    new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    }
-                );
-            }
-            catch
-            {
-              
-                return Ok(new AnaliticPageDTO());
-            }
+                var query = _dashboard.work_progresses
+                    .Include(wp => wp.id_sourseNavigation)
+                    .Include(wp => wp.work_progress_violations)
+                        .ThenInclude(v => v.id_articleNavigation)
+                    .Where(wp => wp.created_at.HasValue)
+                    .AsQueryable();
 
-            return Ok(data ?? new AnaliticPageDTO());
+                if (dateFrom.HasValue)
+                    query = query.Where(wp => wp.created_at >= dateFrom.Value);
+
+                if (dateTo.HasValue)
+                    query = query.Where(wp => wp.created_at <= dateTo.Value);
+
+                if (year.HasValue)
+                    query = query.Where(wp => wp.created_at.Value.Year == year.Value);
+
+                if (month.HasValue)
+                    query = query.Where(wp => wp.created_at.Value.Month == month.Value);
+
+                if (quarter.HasValue)
+                {
+                    var startMonth = (quarter.Value - 1) * 3 + 1;
+                    var endMonth = startMonth + 2;
+                    query = query.Where(wp => wp.created_at.Value.Month >= startMonth &&
+                                             wp.created_at.Value.Month <= endMonth);
+                }
+
+                var workProgresses = await query.ToListAsync();
+
+                var perimeterBySource = workProgresses
+                    .GroupBy(wp => wp.id_sourseNavigation?.source ?? "Неизвестно")
+                    .Select(g => new PerimeterBySourceDto
+                    {
+                        Source = g.Key,
+                        Sum = g.Sum(wp => wp.all_perimeter ?? 0)
+                    })
+                    .ToList();
+
+                var dailyStats = workProgresses
+                    .GroupBy(wp => wp.created_at?.Date)
+                    .Select(g => new DailyStatsDto
+                    {
+                        Date = g.Key,
+                        AllPerimeter = g.Sum(wp => wp.all_perimeter ?? 0),
+                        CompletePerimeter = g.Sum(wp => wp.complete_perimeter ?? 0),
+                        RemainedPerimeter = g.Sum(wp => wp.remained_perimeter ?? 0)
+                    })
+                    .OrderBy(d => d.Date)
+                    .ToList();
+
+                var violations = workProgresses
+                    .SelectMany(wp => wp.work_progress_violations, (wp, v) => new ViolationDto
+                    {
+                        WorkProgressId = wp.id,
+                        ArticleId = v.id_article ?? 0,
+                        Article = v.id_articleNavigation?.article1 ?? "Неизвестно",
+                        ObjectAWeek = v.object_a_week ?? 0,
+                        NewViolations = v.new_violations ?? 0,
+                        OldViolations = v.old_violations ?? 0
+                    })
+                    .ToList();
+
+                var result = new AnaliticPageDTO
+                {
+                    PerimeterBySource = perimeterBySource,
+                    DailyStats = dailyStats,
+                    Violations = violations
+                };
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Ошибка при получении данных: {ex.Message}");
+            }
         }
     }
 }

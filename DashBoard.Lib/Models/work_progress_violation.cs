@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DashBoard.Lib.Models;
 
@@ -17,5 +18,8 @@ public partial class work_progress_violation
 
     public int? old_violations { get; set; }
 
+    [ForeignKey("id_work_progress")]
     public virtual work_progress? id_work_progressNavigation { get; set; }
+    [ForeignKey("id_article")]
+    public virtual article? id_articleNavigation { get; set; }
 }

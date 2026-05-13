@@ -47,15 +47,24 @@
             var period = periods[periodIndex];
             var currentPeriodIndex = periodIndex;
 
-            <MudPaper Class="pa-4 mb-4" Elevation="2">
+            <MudPaper Class="pa-4 mb-4" Elevation="3">
                 <MudGrid>
-                    <MudItem xs="12" sm="8">
+                    <MudItem xs="12" sm="4">
                         <MudDatePicker @bind-Date="period.Month"
                                        Label="Месяц"
                                        OpenTo="OpenTo.Year"
                                        DateFormat="yyyy-MM"
                                        Views="new[] { CalendarView.Year, CalendarView.Month }"
                                        Disabled="@isLoading" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="period.CountApplications"
+                                      Clearable="true"
+                                      T="int?"
+                                      Label="Количетво заявок"
+                                      Variant="Variant.Outlined"
+                                      MaxLength="70"
+                                      Disabled="@isLoading" />
                     </MudItem>
                     <MudItem xs="12" sm="4" Class="d-flex justify-end align-center">
                         <MudIconButton Icon="@Icons.Material.Filled.Delete"
@@ -193,6 +202,7 @@
     private AddRobotDTO addRobots = new();
     private List<PeriodGroup> periods = new();
     private DateTime? currentMonth;
+ 
     private bool isEditMode = false;
     private bool isLoading = false;
 
@@ -222,7 +232,8 @@
             {
                 var period = new PeriodGroup
                 {
-                    Month = periodDto.Month
+                    Month = periodDto.Month,
+                    CountApplications = periodDto.CountApplications
                 };
                 
                 foreach (var chartDto in periodDto.Charts)
@@ -340,6 +351,7 @@
             var request = new CreateRobotRequest
             {
                 Robot = addRobots,
+                
                 Periods = periods
             };
 
@@ -368,6 +380,7 @@
             var request = new UpdateRobotRequest
             {
                 RobotId = RobotId,
+              
                 Robot = addRobots,
                 Periods = periods
             };

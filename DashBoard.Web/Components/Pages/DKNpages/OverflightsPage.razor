@@ -1,37 +1,134 @@
 ﻿@page "/overflight"
+@inject Services.ApiService api
 <PageTitle>@Departs.overflights</PageTitle>
 <MudGrid>
-    <MudItem xs="12" sm="6">
-        <MudText >@ResForBodyPage.tokens</MudText>
-        <MudChart T="double" ChartType="ChartType.Donut" LegendPosition="Position.Bottom" Width="100%" Height="300px"
-                  ChartSeries="@([data])" ChartLabels="@labels">
-        </MudChart>
+    <MudItem xs="6">
+        <DialogPer OnChange="OnPeriodChanged" />
+    </MudItem>
+    <MudItem Class="d-flex justify-sm-end justify-center pr-sm-4" xs="6">
+        <MudButton Href="/overflight/edit">Обновить данные</MudButton>
     </MudItem>
     <MudItem xs="12" sm="6">
-        <MudText>@ResForBodyPage.viols_month</MudText>
-        <MudChart ChartType="ChartType.Donut" Width="100%" Height="300px" ChartSeries="@Data.AsChartDataSet()" ChartLabels="@Labels">
+        <MudText Class="my-5" Align="Align.Center">@ResForBodyPage.tokens</MudText>
+        <MudChart T="double"  ChartType="ChartType.Donut" Width="100%" Height="300px" ChartSeries="@_statusSeries" ChartLabels="@_statusLabels">
             <CustomGraphics>
-                <text class="mud-donut-text mud-typography-h3" x="50%" y="50%">@Data.Sum()</text>
+                <text class="mud-donut-text mud-typography-h3" x="50%" y="50%">@_data?.CountStatus</text>
             </CustomGraphics>
         </MudChart>
     </MudItem>
-    <MudItem xs="12">
-        <MudText>@ResForBodyPage.viols</MudText>
-        <MudChart ChartType="ChartType.Bar" ChartSeries="@Series" ChartLabels="@XAxisLabels" Width="100%" Height="350px">
+    <MudItem xs="12" sm="6">
+        <MudText Class="my-5" Align="Align.Center">@ResForBodyPage.viols_month</MudText>
+        <MudChart T="double" ChartType="ChartType.Donut" Width="100%" Height="300px"
+                  ChartSeries="@_violationDateSeries" ChartLabels="@_violationDateLabels">
+            <CustomGraphics>
+                <text class="mud-donut-text mud-typography-h3" x="50%" y="50%">
+                    @(_block1Data?.CountStatus ?? 0)
+                </text>
+            </CustomGraphics>
+        </MudChart>
+    </MudItem>
+    <MudItem  xs="12">
+        <MudText Class="my-5" Align="Align.Center">@ResForBodyPage.viols</MudText>
+        <MudChart ChartType="ChartType.Bar" ChartSeries="@_districtSeries" ChartLabels="@_districtLabels" Width="100%" Height="350px">
 </MudChart>
     </MudItem>
 </MudGrid>
 @code {
-    private static readonly int[] Data = [25, 77, 28, 5];
-    private static readonly string[] Labels = ["Oil", "Coal", "Gas", "Biomass"];
- public List<ChartSeries<double>> Series = new()
-    {
-        new() { Name = "United States", Data = new double[] { 40, 20, 25, 27, 46, 60, 48, 80, 15 } },
-        new() { Name = "Germany", Data = new double[] { 19, 24, 35, 13, 28, 15, 13, 16, 31 } },
-        new() { Name = "Sweden", Data = new double[] { 8, 6, 11, 13, 4, 16, 10, 16, 18 } },
-    };
-    public string[] XAxisLabels = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep" };
+    private OverflyDTO? _data;
 
-    public double[] data = { 25, 77, 28, 5 };
-    public string[] labels = { "Oil", "Coal", "Gas", "Biomass" };
+
+    private List<ChartSeries<double>> _statusSeries = new();
+    private string[] _statusLabels = Array.Empty<string>();
+    private List<ChartSeries<double>> _dateSeries = new();
+    private string[] _dateLabels = Array.Empty<string>();
+    private List<ChartSeries<double>> _districtSeries = new();
+    private string[] _districtLabels = Array.Empty<string>();
+
+    private OverflyDTO? _block1Data;
+    private List<ChartSeries<double>> _violationDateSeries = new();
+    private string[] _violationDateLabels = Array.Empty<string>();
+    private int? _year;
+    private int? _quarter;
+    private int? _month;
+
+    private async Task OnPeriodChanged(DialogPer.Periods periods)
+    {
+        _year = periods.Year;
+        _month = periods.Month;
+        _quarter = periods.Quarter;
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var query = new List<string>();
+            if (_year.HasValue) query.Add($"year={_year}");
+            if (_quarter.HasValue) query.Add($"quarter={_quarter}");
+            if (_month.HasValue) query.Add($"month={_month}");
+            
+            var queryString = query.Any() ? "?" + string.Join("&", query) : "";
+
+          
+            var task1 = api.GetAsync<OverflyDTO>($"api/overfly/get-overfly{queryString}");
+            var task2 = api.GetAsync<OverflyDTO>($"api/overfly/block-1{queryString}");
+            
+            await Task.WhenAll(task1, task2);
+            
+            _data = task1.Result; 
+            _block1Data = task2.Result;  
+
+            
+            if (_data != null)
+            {
+                _statusSeries = new List<ChartSeries<double>>
+                {
+                    new ChartSeries<double>
+                    {
+                        Name = "Количество",
+                        Data = _data.overflyStatusCounts.Select(s => (double)s.Count).ToArray()
+                    }
+                };
+                _statusLabels = _data.overflyStatusCounts.Select(s => s.StatusName).ToArray();
+
+                _districtSeries = new List<ChartSeries<double>>
+                {
+                    new ChartSeries<double>
+                    {
+                        Name = "Количество",
+                        Data = _data.overflyByDistricts.Select(d => (double)d.Count).ToArray()
+                    }
+                };
+                _districtLabels = _data.overflyByDistricts.Select(d => d.DistrictName).ToArray();
+            }
+
+        
+            if (_block1Data != null)
+            {
+                _violationDateSeries = new List<ChartSeries<double>>
+                {
+                    new ChartSeries<double>
+                    {
+                        Name = "Количество",
+                        Data = _block1Data.overflyStatusCounts.Select(d => (double)d.Count).ToArray()
+                    }
+                };
+                _violationDateLabels = 
+                   _block1Data.overflyStatusCounts.Select(s => s.StatusName).ToArray();
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+    
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
 }

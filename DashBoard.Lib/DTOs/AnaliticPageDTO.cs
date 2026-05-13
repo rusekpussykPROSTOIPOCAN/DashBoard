@@ -40,6 +40,12 @@ namespace DashBoard.Lib.DTOs
     }
     public class ViolationDto
     {
+        [JsonPropertyName("work_progress_id")]
+        public int WorkProgressId { get; set; }
+
+        [JsonPropertyName("article_id")]
+        public int ArticleId { get; set; }
+
         [JsonPropertyName("article")]
         public string Article { get; set; } = string.Empty;
 
@@ -65,5 +71,7 @@ namespace DashBoard.Lib.DTOs
     {
         public string Data { get; set; }
     }
+
+
 }
 

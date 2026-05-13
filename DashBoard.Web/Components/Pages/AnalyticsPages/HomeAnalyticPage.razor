@@ -3,88 +3,437 @@
 @inject IDialogService DialogService
 @inject Services.ApiService api
 @using MudBlazor
-@inject HttpClient httpClient
 @inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
 <MudContainer Fixed="true" MaxWidth="MaxWidth.Large">
-
     <MudGrid>
-
         <MudItem sm="6" md="6">
-           <DialogPer OnChange="OnPeriodChanged"/>
+            <DialogPer OnChange="OnPeriodChanged" />
         </MudItem>
 
-       
-        <MudItem md="6" sm="6"
-                 Class="d-flex justify-sm-end justify-center pr-sm-4">
-            <MudFab Href="/FormAnalityc"
-                Color="Color.Success"
-                    StartIcon="@Icons.Material.Filled.AddCircle"
-                    Size="Size.Large"
-                    Class="my-1" />
+        <MudItem md="6" sm="6" Class="d-flex justify-sm-end justify-center pr-sm-4 gap-2">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.AddTask"
+                       OnClick="OpenAddTaskDialog"
+                       Class="my-1">
+                Новая задача
+            </MudButton>
         </MudItem>
 
         <MudItem sm="3" xs="6">
             <MudText>Всего: <b>@(_data?.DailyStats?.Sum(x => x.AllPerimeter) ?? 0)</b></MudText>
-
         </MudItem>
         <MudItem sm="3" xs="6">
             <MudText>Выполнено: <b>@(_data?.DailyStats?.Sum(x => x.CompletePerimeter) ?? 0)</b></MudText>
-           
-
         </MudItem>
         <MudItem sm="3" xs="6">
             <MudText>В работе: <b>@(_data?.DailyStats?.Sum(x => x.RemainedPerimeter) ?? 0)</b></MudText>
-
         </MudItem>
         <MudItem sm="3" xs="6">
-            
-
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Secondary"
+                       Size="Size.Small"
+                       OnClick="OpenAddViolationDialog"
+                       FullWidth="true">
+                + Нарушение
+            </MudButton>
         </MudItem>
+
         <MudItem xs="12" md="9">
-          
             <MudDataGrid T="ViolationDto"
-                         
-                         
                          Filterable="true"
                          Items="@Violations"
                          ColumnResizeMode="ResizeMode.Column">
-    
                 <Columns>
                     <PropertyColumn Property="x => x.Article" Title="Статья" />
                     <PropertyColumn Property="x => x.ObjectAWeek" Title="Количество нарушений" />
                     <PropertyColumn Property="x => x.NewViolations" Title="Новые нарушения" />
                     <PropertyColumn Property="x => x.OldViolations" Title="Ранее учтенные" />
+                    <TemplateColumn Title="Действия" CellClass="d-flex justify-center">
+                        <CellTemplate>
+                            <div class="d-flex gap-1">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               Color="Color.Primary"
+                                               Size="Size.Small"
+                                               OnClick="@(() => EditWorkProgress(context.Item.WorkProgressId))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               OnClick="@(() => DeleteWorkProgress(context.Item.WorkProgressId))" />
+                            </div>
+                        </CellTemplate>
+                    </TemplateColumn>
                 </Columns>
-
             </MudDataGrid>
-          
         </MudItem>
 
         <MudItem xs="12" md="3">
-          
             <MudChart ChartType="ChartType.Pie"
-                          ChartSeries="@ChartData.AsChartDataSet()"
-                          
-                          ChartLabels="@ChartLabels"
-                          Width="100%"
-                          Height="300px" />
-           
+                      ChartSeries="@ChartData.AsChartDataSet()"
+                      ChartLabels="@ChartLabels"
+                      Width="100%"
+                      Height="300px" />
         </MudItem>
-       
-
-
     </MudGrid>
 </MudContainer>
 
+<!-- Диалог добавления новой задачи -->
+<MudDialog @bind-Visible="_addViolationDialogVisible"
+           Title="Добавить нарушение к существующей задаче"
+           MaxWidth="MaxWidth.Small"
+           Options="_dialogOptions">
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudSelect T="int"
+                       Label="Выберите задачу"
+                       @bind-Value="_selectedWorkProgressId"
+                       Required="true"
+                       AnchorOrigin="Origin.BottomCenter">
+                @foreach (var wp in _workProgresses)
+                {
+                    <MudSelectItem Value="@wp.Id">
+                        @($"{wp.SourseName} - {wp.CreateAt:dd.MM.yyyy}")
+                    </MudSelectItem>
+                }
+            </MudSelect>
+            
+            <!-- Статья с возможностью "Другое" -->
+            @if (_showCustomArticleSingle)
+            {
+                <MudTextField @bind-Value="_newViolation.CustomArticleName"
+                              Label="Введите статью"
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Filled.Close"
+                              OnAdornmentClick="@(() => { 
+                                  _showCustomArticleSingle = false; 
+                                  _newViolation.IdArticle = 0;
+                                  _newViolation.CustomArticleName = "";
+                                  StateHasChanged();
+                              })" />
+            }
+            else
+            {
+                <MudSelect T="int"
+                           Label="Статья"
+                           Value="_newViolation.IdArticle"
+                           ValueChanged="@((int value) => {
+                               if (value == -1)
+                               {
+                                   _showCustomArticleSingle = true;
+                                   _newViolation.IdArticle = -1;
+                                   _newViolation.CustomArticleName = "";
+                               }
+                               else
+                               {
+                                   _showCustomArticleSingle = false;
+                                   _newViolation.IdArticle = value;
+                               }
+                               StateHasChanged();
+                           })"
+                           Required="true"
+                           AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem Value="-1">Другое (ввести вручную)</MudSelectItem>
+                    @foreach (var article in _articles)
+                    {
+                        <MudSelectItem Value="@article.Id">@article.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+            
+            <MudTextField @bind-Value="_newViolation.ViolationsWeek"
+                          Label="За неделю"
+                          InputType="InputType.Number" />
+            
+            <MudTextField @bind-Value="_newViolation.NewViolations"
+                          Label="Новых"
+                          InputType="InputType.Number" />
+            
+            <MudTextField @bind-Value="_newViolation.OldViolations"
+                          Label="Старых"
+                          InputType="InputType.Number" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CancelAddViolation">Отмена</MudButton>
+        <MudButton Color="Color.Primary" OnClick="SaveNewViolation">Сохранить</MudButton>
+    </DialogActions>
+</MudDialog>
+<MudDialog @bind-Visible="_addTaskDialogVisible"
+           Title="Добавить новую задачу"
+           MaxWidth="MaxWidth.Medium"
+           Options="_dialogOptions">
+    <DialogContent>
+        <MudStack Spacing="3">
+            <!-- Источник с возможностью "Другое" -->
+            @if (_showCustomSource)
+            {
+                <MudTextField @bind-Value="_newTask.CustomSourceName"
+                              Label="Введите источник"
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Filled.Close"
+                              OnAdornmentClick="@(() => { 
+                                  _showCustomSource = false; 
+                                  _newTask.IdSourse = 0;
+                                  _newTask.CustomSourceName = "";
+                                  StateHasChanged();
+                              })" />
+            }
+            else
+            {
+                <MudSelect T="int"
+                           Label="Источник"
+                           Value="_newTask.IdSourse"
+                           ValueChanged="@((int value) => OnSourceSelected(value))"
+                           Required="true"
+                           AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem Value="-1">Другое (ввести вручную)</MudSelectItem>
+                    @foreach (var source in _sources)
+                    {
+                        <MudSelectItem Value="@source.Id">@source.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+            
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="_newTask.AllPerimeter"
+                                  Label="Всего периметр"
+                                  InputType="InputType.Number"
+                                  OnBlur="RecalculatePerimeter" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="_newTask.CompletePerimeter"
+                                  Label="Выполнено периметр"
+                                  InputType="InputType.Number"
+                                  OnBlur="RecalculatePerimeter" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="_newTask.RemainedPerimeter"
+                                  Label="Осталось периметр"
+                                  InputType="InputType.Number"
+                                  OnBlur="RecalculatePerimeter" />
+                </MudItem>
+            </MudGrid>
+            
+            <MudTextField @bind-Value="_newTask.Comment"
+                          Label="Комментарий"
+                          Lines="3" />
+            
+            <MudText Typo="Typo.subtitle1"><b>Нарушения:</b></MudText>
+            
+            @for (int i = 0; i < _newTask.Violations.Count; i++)
+            {
+                var index = i;
+                <MudPaper Elevation="2" Class="pa-3 mb-2">
+                    <MudGrid>
+                        <MudItem xs="12" md="5">
+                            <!-- Статья с возможностью "Другое" -->
+                            @if (_showCustomArticle.Contains(index))
+                            {
+                                <MudTextField @bind-Value="_newTask.Violations[index].CustomArticleName"
+                                              Label="Введите статью"
+                                              Variant="Variant.Outlined"
+                                              Immediate="true"
+                                              Adornment="Adornment.End"
+                                              AdornmentIcon="@Icons.Material.Filled.Close"
+                                              OnAdornmentClick="@(() => { 
+                                                  _showCustomArticle.Remove(index);
+                                                  _newTask.Violations[index].IdArticle = 0;
+                                                  _newTask.Violations[index].CustomArticleName = "";
+                                                  StateHasChanged();
+                                              })" />
+                            }
+                            else
+                            {
+                                <MudSelect T="int"
+                                           Label="Статья"
+                                           Value="_newTask.Violations[index].IdArticle"
+                                           ValueChanged="@((int value) => OnArticleSelected(value, index))"
+                                           Required="true"
+                                           AnchorOrigin="Origin.BottomCenter">
+                                    <MudSelectItem Value="-1">Другое (ввести вручную)</MudSelectItem>
+                                    @foreach (var article in _articles)
+                                    {
+                                        <MudSelectItem Value="@article.Id">@article.Name</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            }
+                        </MudItem>
+                        <MudItem xs="6" md="2">
+                            <MudTextField Value="_newTask.Violations[index].ViolationsWeek"
+                                          ValueChanged="@((int value) => UpdateViolationField(index, "ViolationsWeek", value))"
+                                          Label="За неделю"
+                                          InputType="InputType.Number"
+                                          Immediate="true" />
+                        </MudItem>
+                        <MudItem xs="6" md="2">
+                            <MudTextField Value="_newTask.Violations[index].NewViolations"
+                                          ValueChanged="@((int value) => UpdateViolationField(index, "NewViolations", value))"
+                                          Label="Новых"
+                                          InputType="InputType.Number"
+                                          Immediate="true" />
+                        </MudItem>
+                        <MudItem xs="6" md="2">
+                            <MudTextField Value="_newTask.Violations[index].OldViolations"
+                                          ValueChanged="@((int value) => UpdateViolationField(index, "OldViolations", value))"
+                                          Label="Старых"
+                                          InputType="InputType.Number"
+                                          Immediate="true" />
+                        </MudItem>
+                        <MudItem xs="6" md="1" Class="d-flex align-end">
+                            <MudIconButton Icon="@Icons.Material.Filled.RemoveCircle"
+                                           Color="Color.Error"
+                                           Size="Size.Small"
+                                           OnClick="@(() => RemoveViolationFromNewTask(index))" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            }
+            
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Info"
+                       OnClick="AddViolationToNewTask"
+                       StartIcon="@Icons.Material.Filled.Add">
+                Добавить нарушение
+            </MudButton>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CancelAddTask">Отмена</MudButton>
+        <MudButton Color="Color.Primary" OnClick="SaveNewTask">Сохранить</MudButton>
+    </DialogActions>
+</MudDialog>
+
 @code {
     private double[] ChartData => _data?.PerimeterBySource?.Select(x => (double)x.Sum).ToArray() ?? Array.Empty<double>();
-    private string[] ChartLabels => _data?.PerimeterBySource?.Select(x =>x.Source).ToArray() ?? Array.Empty<string>();
+    private string[] ChartLabels => _data?.PerimeterBySource?.Select(x => x.Source).ToArray() ?? Array.Empty<string>();
     private List<ViolationDto> Violations = new();
-    
+    private bool _showCustomSource = false;
+    private HashSet<int> _showCustomArticle = new();
     private int? _year;
     private int? _quarter;
     private int? _month;
     private AnaliticPageDTO? _data;
+
+    private bool _addTaskDialogVisible;
+    private bool _addViolationDialogVisible;
+    private bool _confirmDeleteVisible;
+    private int _deleteWorkProgressId;
+
+    private AddWorkProgressRequest _newTask = new() { Violations = new() };
+    private ViolationRequest _newViolation = new();
+    private int _selectedWorkProgressId;
+
+    private List<(int Id, string Name)> _articles = new();
+    private List<(int Id, string Name)> _sources = new();
+    private List<WorkProgressListItem> _workProgresses = new();
+
+    private DialogOptions _dialogOptions = new() { FullWidth = true, CloseButton = true };
+    private bool _showCustomArticleSingle = false;
+     private void OnSourceSelected(int value)
+    {
+        if (value == -1)
+        {
+            _showCustomSource = true;
+            _newTask.IdSourse = -1;
+            _newTask.CustomSourceName = "";
+        }
+        else
+        {
+            _showCustomSource = false;
+            _newTask.IdSourse = value;
+        }
+        StateHasChanged();
+    }
+   
+    private void OnArticleSelected(int value, int index)
+    {
+        if (value == -1)
+        {
+            _showCustomArticle.Add(index);
+            _newTask.Violations[index].IdArticle = -1;
+            _newTask.Violations[index].CustomArticleName = "";
+        }
+        else
+        {
+            _showCustomArticle.Remove(index);
+            _newTask.Violations[index].IdArticle = value;
+        }
+        StateHasChanged();
+    }
+    private void UpdateViolationField(int index, string field, int value)
+    {
+        switch (field)
+        {
+            case "ViolationsWeek":
+                _newTask.Violations[index].ViolationsWeek = value;
+                break;
+            case "NewViolations":
+                _newTask.Violations[index].NewViolations = value;
+                break;
+            case "OldViolations":
+                _newTask.Violations[index].OldViolations = value;
+                break;
+        }
+
+        RecalculateViolintation(index);
+        StateHasChanged();
+    }
+
+    private void RecalculateViolintation(int index)
+    {
+        var v = _newTask.Violations[index];
+
+       
+        if (v.ViolationsWeek > 0 && v.NewViolations > 0 && v.OldViolations == 0)
+        {
+            v.OldViolations = v.ViolationsWeek - v.NewViolations;
+        }
+        
+        else if (v.ViolationsWeek > 0 && v.OldViolations > 0 && v.NewViolations == 0)
+        {
+            v.NewViolations = v.ViolationsWeek - v.OldViolations;
+        }
+        
+        else if (v.NewViolations > 0 && v.OldViolations > 0 && v.ViolationsWeek == 0)
+        {
+            v.ViolationsWeek = v.NewViolations + v.OldViolations;
+        }
+    }
+    private void CancelAddTask()
+    {
+        _addTaskDialogVisible = false;
+        _showCustomSource = false;
+        _showCustomArticle.Clear();
+    } 
+    private void EditWorkProgress(int workProgressId)
+    {
+        Navigation.NavigateTo($"/EditAnaliticForm/{workProgressId}");
+    }
+    private void RecalculatePerimeter()
+    {
+
+        if (_newTask.AllPerimeter > 0 && _newTask.CompletePerimeter > 0)
+        {
+            _newTask.RemainedPerimeter = _newTask.AllPerimeter - _newTask.CompletePerimeter;
+        }
+
+        else if (_newTask.AllPerimeter > 0 && _newTask.RemainedPerimeter > 0)
+        {
+            _newTask.CompletePerimeter = _newTask.AllPerimeter - _newTask.RemainedPerimeter;
+        }
+
+        else if (_newTask.CompletePerimeter > 0 && _newTask.RemainedPerimeter > 0)
+        {
+            _newTask.AllPerimeter = _newTask.CompletePerimeter + _newTask.RemainedPerimeter;
+        }
+    }
     private async Task OnPeriodChanged(DialogPer.Periods periods)
     {
         _year = periods.Year;
@@ -92,37 +441,231 @@
         _quarter = periods.Quarter;
         await LoadData();
     }
+
     private async Task LoadData()
     {
-        var query = new List<string>();
+        try
+        {
+            var query = new List<string>();
+            if (_year.HasValue) query.Add($"year={_year}");
+            if (_month.HasValue) query.Add($"month={_month}");
+            if (_quarter.HasValue) query.Add($"quarter={_quarter}");
 
-        if (_year.HasValue) query.Add($"year={_year}");
-        if (_month.HasValue) query.Add($"month={_month}");
-        if (_quarter.HasValue) query.Add($"quarter={_quarter}");
+            var url = "api/getTableAnalitic";
+            if (query.Any())
+                url += "?" + string.Join("&", query);
 
-        var url = "api/getTableAnalitic";
-
-        if (query.Any())
-            url += "?" + string.Join("&", query);
-
-        var result = await api.GetAsync<AnaliticPageDTO>(url);
-
-        _data = result;
-
-        Violations = _data?.Violations ?? new List<ViolationDto>();
-
-        StateHasChanged();
+            var result = await api.GetAsync<AnaliticPageDTO>(url);
+            _data = result;
+            Violations = _data?.Violations ?? new List<ViolationDto>();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка загрузки данных: {ex.Message}", Severity.Error);
+        }
     }
+
+   
     protected override async Task OnInitializedAsync()
     {
-
         await LoadData();
-    
+        await LoadReferenceData();
+    }
+
+    private async Task LoadReferenceData()
+    {
+        try
+        {
+            var articles = await api.GetAsync<List<ArticleDto>>("api/articles");
+            _articles = articles?.Select(a => (a.Id, a.Article1 ?? "Неизвестно")).ToList() ?? new();
+
+            var sources = await api.GetAsync<List<SourceDto>>("api/sources");
+            _sources = sources?.Select(s => (s.Id, s.Source ?? "Неизвестно")).ToList() ?? new();
+
+            var progressList = await api.GetAsync<List<WorkProgressListItem>>("api/form/list");
+            _workProgresses = progressList ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка загрузки справочников: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void OpenAddTaskDialog()
+    {
+        _newTask = new AddWorkProgressRequest();
+        _newTask.Violations.Add(new ViolationRequest());
+        _showCustomSource = false;
+        _showCustomArticle.Clear();
+        _addTaskDialogVisible = true;
+        StateHasChanged();
     }
 
     
-};
 
-   
+    private void AddViolationToNewTask()
+    {
+        _newTask.Violations.Add(new ViolationRequest());
+    }
 
-   
+    private void RemoveViolationFromNewTask(int index)
+    {
+        if (_newTask.Violations.Count > 1)
+        {
+            _newTask.Violations.RemoveAt(index);
+        }
+    }
+
+        private async Task SaveNewTask()
+    {
+        try
+        {
+            
+            if (_newTask.IdSourse == -1)
+            {
+                if (string.IsNullOrWhiteSpace(_newTask.CustomSourceName))
+                {
+                    Snackbar.Add("Введите название источника", Severity.Warning);
+                    return;
+                }
+            }
+            else if (_newTask.IdSourse <= 0)
+            {
+                Snackbar.Add("Выберите источник", Severity.Warning);
+                return;
+            }
+
+            if (!_newTask.Violations.Any())
+            {
+                Snackbar.Add("Добавьте хотя бы одно нарушение", Severity.Warning);
+                return;
+            }
+
+            if (_newTask.RemainedPerimeter == 0 && _newTask.AllPerimeter > 0)
+            {
+                _newTask.RemainedPerimeter = _newTask.AllPerimeter - _newTask.CompletePerimeter;
+            }
+
+            var result = await api.PostAsync<AddWorkProgressResult>("api/form", _newTask);
+            
+            if (result != null)
+            {
+                Snackbar.Add($"Задача создана (ID: {result.id})", Severity.Success);
+                _addTaskDialogVisible = false;
+                _showCustomSource = false;
+                await LoadReferenceData();
+                await LoadData();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка сохранения: {ex.Message}", Severity.Error);
+        }
+    }
+
+
+    private void OpenAddViolationDialog()
+    {
+        _newViolation = new ViolationRequest();
+        _selectedWorkProgressId = 0;
+        _addViolationDialogVisible = true;
+    }
+
+    private void CancelAddViolation()
+    {
+        _addViolationDialogVisible = false;
+    }
+
+    private async Task SaveNewViolation()
+    {
+        try
+        {
+            if (_selectedWorkProgressId <= 0)
+            {
+                Snackbar.Add("Выберите задачу", Severity.Warning);
+                return;
+            }
+
+            if (_newViolation.IdArticle <= 0)
+            {
+                Snackbar.Add("Выберите статью", Severity.Warning);
+                return;
+            }
+
+            var existingData = await api.GetAsync<WorkProgressResponce>($"api/form/{_selectedWorkProgressId}");
+            
+            if (existingData != null)
+            {
+                var violations = existingData.Violations.ToList();
+                violations.Add(new ViolationsResponse
+                {
+                    IdArticle = _newViolation.IdArticle,
+                    ViolationsWeek = _newViolation.ViolationsWeek,
+                    NewViolations = _newViolation.NewViolations,
+                    OldViolations = _newViolation.OldViolations
+                });
+
+                var updateRequest = new EditWorkProgressRequest
+                {
+                    Id = existingData.Id,
+                    IdSourse = existingData.IdSourse,
+                    AllPerimeter = existingData.AllPerimeter,
+                    CompletePerimeter = existingData.CompletePerimeter,
+                    RemainedPerimeter = existingData.RemainedPerimeter,
+                    Comment = existingData.Comment,
+                    Violations = violations.Select(v => new ViolationRequest
+                    {
+                        IdArticle = v.IdArticle,
+                        ViolationsWeek = v.ViolationsWeek,
+                        NewViolations = v.NewViolations,
+                        OldViolations = v.OldViolations
+                    }).ToList()
+                };
+
+                await api.PutAsync<object>($"api/form/{_selectedWorkProgressId}", updateRequest);
+                
+                Snackbar.Add("Нарушение добавлено", Severity.Success);
+                _addViolationDialogVisible = false;
+                await LoadData();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка добавления нарушения: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void DeleteWorkProgress(int workProgressId)
+    {
+        _deleteWorkProgressId = workProgressId;
+        _confirmDeleteVisible = true;
+    }
+
+    private void CancelDelete()
+    {
+        _confirmDeleteVisible = false;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        _confirmDeleteVisible = false;
+        
+        try
+        {
+            await api.DeleteAsync($"api/form/{_deleteWorkProgressId}");
+            Snackbar.Add("Запись удалена", Severity.Success);
+            await LoadReferenceData(); 
+            await LoadData(); 
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка удаления: {ex.Message}", Severity.Error);
+        }
+    }
+
+
+}

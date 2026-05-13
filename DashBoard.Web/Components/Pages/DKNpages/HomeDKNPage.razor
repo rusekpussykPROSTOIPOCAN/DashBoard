@@ -32,7 +32,7 @@
 
                     <text class="mud-donut-text mud-typography-body2"
                           x="50%" y="55%" text-anchor="middle">
-                        Исполнено (в кв.км): @SumSqr.Sum()
+                        Исполнено (в кв.км): @Math.Round(SumSqr.Sum(),1)
                     </text>
                 </CustomGraphics>
             </MudChart>
@@ -78,42 +78,55 @@
 </MudContainer>
 @code {
 
-    private List<StatusSquare>? data = new();
-    private string[] LabelsSqr => data.Select(x => x.Name).ToArray();
-    private double[] DataSqr => data.Select(x => Math.Round(x.Squer,1)).ToArray();
-    private double[] SumSqr => data.Where(o => o.Name == "ИСПОЛНЕНА" || o.Name == "ДУБЛЬ").Select(x => Math.Round(x.Squer, 1)).ToArray();
+   
+        private List<StatusSquare>? data = new();
+        private string[] LabelsSqr => data.Select(x => x.Name).ToArray();
+        private double[] DataSqr => data.Select(x => Math.Round(x.Squer, 1)).ToArray();
+        private double[] SumSqr => data.Where(o => o.Name == "ИСПОЛНЕНА" || o.Name == "ДУБЛЬ").Select(x => Math.Round(x.Squer, 1)).ToArray();
 
-    private int? _year;
-    private int? _month;
-    private int? _quarter;
+        private int? _year;
+        private int? _month;
+        private int? _quarter;
 
-    private List<ApplicationDKN> apps = new();
-    private string[] LabelApps => apps.Select(x => x.Name).ToArray();
-    private int[] DataApps => apps.Select(x => (int)x.CountApplications).ToArray();
+        private List<ApplicationDKN> apps = new();
+        private string[] LabelApps => apps.Select(x => x.Name).ToArray();
+        private int[] DataApps => apps
+         .Select(x => (int)(x.CountApplications ?? 0))
+         .ToArray();
 
-    private async Task OnPeriodChanged(DialogPer.Periods periods)
-    {
-        _year = periods.Year;
-        _month = periods.Month;
-        _quarter = periods.Quarter;
-        await LoadData();
-    }
+        private async Task OnPeriodChanged(DialogPer.Periods periods)
+        {
+            _year = periods.Year;
+            _month = periods.Month;
+            _quarter = periods.Quarter;
+            await LoadData();
+        }
 
-    private async Task LoadData()
-    {
-        var query = new List<string>();
+        private async Task LoadData()
+        {
+            var query = new List<string>();
 
-        if (_year.HasValue) query.Add($"year={_year}");
-        if (_month.HasValue) query.Add($"month={_month}");
-        if (_quarter.HasValue) query.Add($"quarter={_quarter}");
+            if (_year.HasValue) query.Add($"year={_year}");
+            if (_month.HasValue) query.Add($"month={_month}");
+            if (_quarter.HasValue) query.Add($"quarter={_quarter}");
 
-        var url = "api/ApplicatonsHomeDKN";
+            // Загружаем заявки
+            var appsUrl = "api/ApplicatonsHomeDKN";
+            if (query.Any())
+                appsUrl += "?" + string.Join("&", query);
+            apps = await api.GetAsync<List<ApplicationDKN>>(appsUrl);
 
-        if (query.Any())
-            url += "?" + string.Join("&", query);
+            // Загружаем площадь по статусам с теми же параметрами
+            var sqrUrl = "api/SqrByStatus";
+            if (query.Any())
+                sqrUrl += "?" + string.Join("&", query);
+            data = await api.GetAsync<List<StatusSquare>>(sqrUrl) ?? new();
+        
+            StateHasChanged();
+        }
 
-        apps = await api.GetAsync<List<ApplicationDKN>>(url);
-    }
+      
+
 
     protected override async Task OnInitializedAsync()
     {

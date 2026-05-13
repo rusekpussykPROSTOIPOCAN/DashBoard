@@ -1,0 +1,598 @@
+﻿@page "/overflight/edit"
+@inject Services.ApiService api
+@inject ISnackbar Snackbar
+
+<PageTitle>Редактирование данных облёта</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudItem Class="my-5">
+        <MudText Typo="Typo.h4" Class="mb-5">Редактирование данных</MudText>
+        
+        <MudButtonGroup Class="mb-4">
+            <MudButton OnClick='() => SwitchTable("block2")'
+                       Variant="@(_activeTable == "block2" ? Variant.Filled : Variant.Outlined)"
+                       Color="Color.Primary">
+                Заявки (Block 2)
+            </MudButton>
+            <MudButton OnClick='() => SwitchTable("block1")'
+                       Variant="@(_activeTable == "block1" ? Variant.Filled : Variant.Outlined)"
+                       Color="Color.Secondary">
+                Нарушения (Block 1)
+            </MudButton>
+        </MudButtonGroup>
+
+        @if (_activeTable == "block2")
+        {
+            <MudDataGrid @ref="_block2Grid"
+                         T="OverflyBlock2Item"
+                         Items="@_block2Items"
+                         EditMode="DataGridEditMode.Form"
+                         StartedEditingItem="@StartedEditingBlock2"
+                         CanceledEditingItem="@CanceledEditingBlock2"
+                         CommittedItemChanges="@CommittedBlock2Changes"
+                         Bordered="true"
+                         Dense="true"
+                         EditTrigger="DataGridEditTrigger.Manual"
+                         ReadOnly="false">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">Заявки</MudText>
+                    <MudSpacer />
+                    <MudButton OnClick="AddNewBlock2" Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add">
+                        Добавить
+                    </MudButton>
+                </ToolBarContent>
+                <Columns>
+                    <PropertyColumn Property="x => x.Id" Title="ID" Editable="false" />
+                    <TemplateColumn Title="Район">
+                        <CellTemplate>
+                            <MudText>@context.Item.DistrictName</MudText>
+                        </CellTemplate>
+                        <EditTemplate>
+                            <MudSelect T="int?" @bind-Value="context.Item.IdDistrict" Label="Район" Required>
+                                @foreach (var d in _districts)
+                                {
+                                    <MudSelectItem T="int?" Value="@((int?)d.Id)">@d.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </EditTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Статус">
+                        <CellTemplate>
+                            <MudText>@context.Item.StatusName</MudText>
+                        </CellTemplate>
+                        <EditTemplate>
+                            <MudSelect T="int?" @bind-Value="context.Item.IdStatus" Label="Статус" Required>
+                                @foreach (var s in _statuses)
+                                {
+                                    <MudSelectItem T="int?" Value="@((int?)s.Id)">@s.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </EditTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Адрес">
+                        <CellTemplate>
+                            <MudText>@context.Item.AddressName</MudText>
+                        </CellTemplate>
+                       <EditTemplate>
+    @if (_showCustomAddress && _currentEditingItem == context.Item)
+    {
+        <MudTextField @bind-Value="context.Item.AddressName" 
+                      Label="Введите адрес"
+                      Variant="Variant.Outlined"
+                      Immediate="true"
+                      Adornment="Adornment.End"
+                      AdornmentIcon="@Icons.Material.Filled.Close"
+                      OnAdornmentClick="@(() => { 
+                          _showCustomAddress = false; 
+                          context.Item.AddressName = "";
+                      })" />
+    }
+    else
+    {
+        <MudSelect T="int?" 
+                   @bind-Value="context.Item.IdAddress" 
+                   Label="Адрес">
+            <MudSelectItem T="int?" Value="@(-1)" OnClick="@(() => OnAddressSelected(-1, context.Item))">
+                Другое (ввести вручную)
+            </MudSelectItem>
+            @foreach (var a in _addresses)
+            {
+                <MudSelectItem T="int?" Value="@((int?)a.Id)" OnClick="@(() => OnAddressSelected(a.Id, context.Item))">
+                    @a.Name
+                </MudSelectItem>
+            }
+        </MudSelect>
+    }
+</EditTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Площадь">
+                        <CellTemplate>
+                            <MudText>@context.Item.Square</MudText>
+                        </CellTemplate>
+                        <EditTemplate>
+                            <MudTextField @bind-Value="context.Item.Square" Label="Площадь" T="double?" />
+                        </EditTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Дата">
+                        <CellTemplate>
+                            <MudText>@context.Item.DateGetMaterials?.ToString("yyyy-MM-dd")</MudText>
+                        </CellTemplate>
+                        <EditTemplate>
+                            <MudDatePicker @bind-Date="context.Item.DateGetMaterialsDateTime" Label="Дата" DateFormat="yyyy-MM-dd" />
+                        </EditTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn CellClass="d-flex justify-end">
+                        <CellTemplate>
+                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
+                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteBlock2(context.Item))" />
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+            </MudDataGrid>
+        }
+        else
+        {
+            <MudDataGrid @ref="_block1Grid"
+             T="OverflyBlock1Item"
+             Items="@_block1Items"
+             EditMode="DataGridEditMode.Form"
+             StartedEditingItem="@StartedEditingBlock1"
+             CanceledEditingItem="@CanceledEditingBlock1"
+             CommittedItemChanges="@CommittedBlock1Changes"
+             Bordered="true"
+             Dense="true"
+             EditTrigger="DataGridEditTrigger.Manual"
+             ReadOnly="false">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Нарушения</MudText>
+        <MudSpacer />
+        <MudButton OnClick="AddNewBlock1" Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add">
+            Добавить
+        </MudButton>
+    </ToolBarContent>
+    <Columns>
+        <PropertyColumn Property="x => x.Id" Title="ID" Editable="false" />
+        <TemplateColumn Title="Район">
+            <CellTemplate>
+                <MudText>@context.Item.DistrictName</MudText>
+            </CellTemplate>
+            <EditTemplate>
+                <MudSelect T="int?" @bind-Value="context.Item.IdDistrict" Label="Район">
+                    @foreach (var d in _districts)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)d.Id)">@d.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </EditTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Нарушение">
+            <CellTemplate>
+                <MudText>@context.Item.ViolationName</MudText>
+            </CellTemplate>
+            <EditTemplate>
+                @if (_showCustomViolation && _currentEditingBlock1Item == context.Item)
+                {
+                    <MudTextField @bind-Value="context.Item.ViolationName" 
+                                  Label="Введите нарушение"
+                                  Variant="Variant.Outlined"
+                                  Immediate="true"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@Icons.Material.Filled.Close"
+                                  OnAdornmentClick="@(() => { 
+                                      _showCustomViolation = false; 
+                                      context.Item.ViolationName = "";
+                                  })" />
+                }
+                else
+                {
+                    <MudSelect T="int?" 
+                               @bind-Value="context.Item.IdViolation" 
+                               Label="Нарушение">
+                        <MudSelectItem T="int?" Value="@(-1)">
+                            Другое (ввести вручную)
+                        </MudSelectItem>
+                        @foreach (var v in _violations)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)v.Id)">@v.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+            </EditTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Количество">
+            <CellTemplate>
+                <MudText>@context.Item.QuantityNewViolation</MudText>
+            </CellTemplate>
+            <EditTemplate>
+                <MudTextField @bind-Value="context.Item.QuantityNewViolation" Label="Количество" T="int?" />
+            </EditTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Дата">
+            <CellTemplate>
+                <MudText>@context.Item.DateDetection?.ToString("yyyy-MM-dd")</MudText>
+            </CellTemplate>
+            <EditTemplate>
+                <MudDatePicker @bind-Date="context.Item.DateDetectionDateTime" Label="Дата" DateFormat="yyyy-MM-dd" />
+            </EditTemplate>
+        </TemplateColumn>
+        <TemplateColumn CellClass="d-flex justify-end">
+            <CellTemplate>
+                <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
+                <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteBlock1(context.Item))" />
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+        }
+    </MudItem>
+</MudContainer>
+
+@code {
+    private string _activeTable = "block2";
+    
+    private MudDataGrid<OverflyBlock2Item> _block2Grid;
+    private MudDataGrid<OverflyBlock1Item> _block1Grid;
+    private List<OverflyBlock2Item> _block2Items = new();
+    private List<OverflyBlock1Item> _block1Items = new();
+    private List<SelectItem> _districts = new();
+    private List<SelectItem> _statuses = new();
+    private List<SelectItem> _addresses = new();
+    private List<SelectItem> _violations = new();
+    
+    private bool _showCustomAddress = false;
+    private OverflyBlock2Item? _currentEditingItem;
+
+    private bool _showCustomViolation = false;
+private OverflyBlock1Item? _currentEditingBlock1Item;
+
+    private void SwitchTable(string table)
+    {
+        _activeTable = table;
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDictionaries();
+        await LoadBlock2();
+        await LoadBlock1();
+    }
+    private async Task AddNewBlock1()
+{
+    _showCustomViolation = false;
+    _currentEditingBlock1Item = null;
+    
+    var newItem = new OverflyBlock1Item();
+    _block1Items.Insert(0, newItem);
+    StateHasChanged();
+    await Task.Delay(50);
+    await _block1Grid.SetEditingItemAsync(newItem);
+}
+
+    private async Task LoadDictionaries()
+    {
+        try
+        {
+            var districtsTask = api.GetAsync<List<SelectItem>>("api/overfly/districts");
+            var statusesTask = api.GetAsync<List<SelectItem>>("api/overfly/statuses");
+            var addressesTask = api.GetAsync<List<SelectItem>>("api/overfly/addresses");
+            var violationsTask = api.GetAsync<List<SelectItem>>("api/overfly/violations");
+            
+            await Task.WhenAll(districtsTask, statusesTask, addressesTask, violationsTask);
+            
+            _districts = districtsTask.Result ?? new();
+            _statuses = statusesTask.Result ?? new();
+            _addresses = addressesTask.Result ?? new();
+            _violations = violationsTask.Result ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка загрузки справочников: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void OnAddressSelected(int? value, OverflyBlock2Item item)
+    {
+        if (value == -1)
+        {
+            // Выбрано "Другое"
+            _showCustomAddress = true;
+            item.IdAddress = null;
+            item.AddressName = "";
+        }
+        else
+        {
+            _showCustomAddress = false;
+            // Находим имя выбранного адреса
+            var address = _addresses.FirstOrDefault(a => a.Id == value);
+            item.AddressName = address?.Name ?? "";
+        }
+    }
+
+    private async Task LoadBlock2()
+    {
+        try
+        {
+            var items = await api.GetAsync<List<OverflyBlock2Item>>("api/overfly/block-2-all");
+            _block2Items = items ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка загрузки Block 2: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadBlock1()
+    {
+        try
+        {
+            var items = await api.GetAsync<List<OverflyBlock1Item>>("api/overfly/block-1-all");
+            _block1Items = items ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка загрузки Block 1: {ex.Message}", Severity.Error);
+        }
+    }
+
+    // Block 2 операции
+    private async Task AddNewBlock2()
+    {
+        _showCustomAddress = false;
+        _currentEditingItem = null;
+        
+        var newItem = new OverflyBlock2Item();
+        _block2Items.Insert(0, newItem);
+        StateHasChanged();
+        await Task.Delay(50);
+        await _block2Grid.SetEditingItemAsync(newItem);
+    }
+
+    private void StartedEditingBlock2(OverflyBlock2Item item) 
+    {
+        _currentEditingItem = item;
+        _showCustomAddress = false;
+        
+        // Если у элемента есть AddressName, но нет IdAddress - значит это пользовательский адрес
+        if (!string.IsNullOrEmpty(item.AddressName) && item.IdAddress == null)
+        {
+            _showCustomAddress = true;
+        }
+    }
+
+    private void CanceledEditingBlock2(OverflyBlock2Item item)
+    {
+        _showCustomAddress = false;
+        _currentEditingItem = null;
+        
+        if (item.Id == 0)
+        {
+            _block2Items.Remove(item);
+            StateHasChanged();
+        }
+    }
+
+   private async Task<DataGridEditFormAction> CommittedBlock2Changes(OverflyBlock2Item item)
+{
+    try
+    {
+        // Проверяем, выбрано ли "Другое"
+        if (item.IdAddress == -1)
+        {
+            item.IdAddress = null;
+            
+            if (string.IsNullOrWhiteSpace(item.AddressName))
+            {
+                _showCustomAddress = true;
+                Snackbar.Add("Введите адрес", Severity.Warning);
+                return DataGridEditFormAction.KeepOpen;
+            }
+        }
+        else if (item.IdAddress.HasValue && item.IdAddress.Value > 0)
+        {
+            var address = _addresses.FirstOrDefault(a => a.Id == item.IdAddress.Value);
+            item.AddressName = address?.Name ?? "";
+        }
+        
+        if (!item.IdAddress.HasValue && string.IsNullOrWhiteSpace(item.AddressName))
+        {
+            Snackbar.Add("Укажите адрес", Severity.Warning);
+            return DataGridEditFormAction.KeepOpen;
+        }
+        
+        if (item.Id == 0)
+        {
+            var request = new OverflyBlock2Request
+            {
+                IdStatus = item.IdStatus,
+                IdAddress = item.IdAddress,
+                AddressName = item.AddressName,
+                IdDistrict = item.IdDistrict,
+                Square = item.Square,
+                DateGetMaterials = item.DateGetMaterials
+            };
+            
+            var response = await api.PostAsync<OverflyBlock2Item>("api/overfly/block-2", request);
+            
+            if (response != null)
+            {
+                // Обновляем свойства существующего элемента
+                item.Id = response.Id;
+                item.StatusName = response.StatusName;
+                item.AddressName = response.AddressName;
+                item.DistrictName = response.DistrictName;
+                
+                Snackbar.Add("Запись добавлена", Severity.Success);
+                _showCustomAddress = false;
+                _currentEditingItem = null;
+                
+                // Принудительно пересоздаем список для обновления DataGrid
+                var tempList = _block2Items.ToList();
+                _block2Items = tempList;
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            await api.PutAsync<object>($"api/overfly/block-2/{item.Id}", item);
+            Snackbar.Add("Запись обновлена", Severity.Success);
+            _showCustomAddress = false;
+            _currentEditingItem = null;
+        }
+    }
+    catch (Exception ex)
+    {
+        Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
+        if (item.Id == 0)
+        {
+            _block2Items.Remove(item);
+            _block2Items = _block2Items.ToList();
+            StateHasChanged();
+        }
+    }
+    
+    return DataGridEditFormAction.Close;
+}
+
+    private async void DeleteBlock2(OverflyBlock2Item item)
+    {
+        try
+        {
+            if (item.Id > 0)
+            {
+                await api.DeleteAsync($"api/overfly/block-2/{item.Id}");
+            }
+            _block2Items.Remove(item);
+            Snackbar.Add("Запись удалена", Severity.Success);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
+        }
+    }
+
+    // Block 1 операции
+   
+
+   private void StartedEditingBlock1(OverflyBlock1Item item) 
+{
+    _currentEditingBlock1Item = item;
+    _showCustomViolation = false;
+    
+    // Если у элемента есть ViolationName, но нет IdViolation - значит это пользовательское нарушение
+    if (!string.IsNullOrEmpty(item.ViolationName) && item.IdViolation == null)
+    {
+        _showCustomViolation = true;
+    }
+}
+
+private void CanceledEditingBlock1(OverflyBlock1Item item)
+{
+    _showCustomViolation = false;
+    _currentEditingBlock1Item = null;
+    
+    if (item.Id == 0)
+    {
+        _block1Items.Remove(item);
+        StateHasChanged();
+    }
+}
+
+
+   private async Task<DataGridEditFormAction> CommittedBlock1Changes(OverflyBlock1Item item)
+{
+    try
+    {
+        // Проверяем, выбрано ли "Другое"
+        if (item.IdViolation == -1)
+        {
+            item.IdViolation = null;
+            
+            if (string.IsNullOrWhiteSpace(item.ViolationName))
+            {
+                _showCustomViolation = true;
+                Snackbar.Add("Введите нарушение", Severity.Warning);
+                return DataGridEditFormAction.KeepOpen;
+            }
+        }
+        else if (item.IdViolation.HasValue && item.IdViolation.Value > 0)
+        {
+            var violation = _violations.FirstOrDefault(v => v.Id == item.IdViolation.Value);
+            item.ViolationName = violation?.Name ?? "";
+        }
+        
+        if (!item.IdViolation.HasValue && string.IsNullOrWhiteSpace(item.ViolationName))
+        {
+            Snackbar.Add("Укажите нарушение", Severity.Warning);
+            return DataGridEditFormAction.KeepOpen;
+        }
+        
+        if (item.Id == 0)
+        {
+            var request = new OverflyBlock1Request
+            {
+                IdDistrict = item.IdDistrict,
+                IdAddress = item.IdAddress,
+                QuantityNewViolation = item.QuantityNewViolation,
+                IdViolation = item.IdViolation,
+                ViolationName = item.ViolationName,
+                DateDetection = item.DateDetection
+            };
+            
+            var response = await api.PostAsync<OverflyBlock1Item>("api/overfly/block-1", request);
+            
+            if (response != null)
+            {
+                item.Id = response.Id;
+                item.DistrictName = response.DistrictName;
+                item.ViolationName = response.ViolationName;
+                
+                Snackbar.Add("Запись добавлена", Severity.Success);
+                _showCustomViolation = false;
+                _currentEditingBlock1Item = null;
+                
+                var tempList = _block1Items.ToList();
+                _block1Items = tempList;
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            await api.PutAsync<object>($"api/overfly/block-1/{item.Id}", item);
+            Snackbar.Add("Запись обновлена", Severity.Success);
+            _showCustomViolation = false;
+            _currentEditingBlock1Item = null;
+        }
+    }
+    catch (Exception ex)
+    {
+        Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
+        if (item.Id == 0)
+        {
+            _block1Items.Remove(item);
+            _block1Items = _block1Items.ToList();
+            StateHasChanged();
+        }
+    }
+    
+    return DataGridEditFormAction.Close;
+}
+    private async void DeleteBlock1(OverflyBlock1Item item)
+    {
+        try
+        {
+            if (item.Id > 0)
+            {
+                await api.DeleteAsync($"api/overfly/block-1/{item.Id}");
+            }
+            _block1Items.Remove(item);
+            Snackbar.Add("Запись удалена", Severity.Success);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
+        }
+    }
+}

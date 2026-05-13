@@ -16,7 +16,22 @@ public partial class dashboardContext : DbContext
         : base(options)
     {
     }
-   
+    public async Task SafeAddAsync<T>(T entity) where T : class
+    {
+        await Set<T>().AddAsync(entity);
+
+        try
+        {
+            await SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            
+            Entry(entity).State = EntityState.Detached;
+            await Set<T>().AddAsync(entity);
+            await SaveChangesAsync();
+        }
+    }
     public virtual DbSet<address> addresses { get; set; }
 
     public virtual DbSet<article> articles { get; set; }
@@ -50,10 +65,11 @@ public partial class dashboardContext : DbContext
     public virtual DbSet<work_progress> work_progresses { get; set; }
 
     public virtual DbSet<work_progress_violation> work_progress_violations { get; set; }
+
     public DbSet<ApplicationDKN> ApplicationDKN { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-     
         modelBuilder.Entity<AddWorkProgressResult>().HasNoKey();
         modelBuilder.Entity<JsonResultDto>().HasNoKey();
         modelBuilder.Entity<ApplicationDKN>().HasNoKey();
@@ -61,7 +77,9 @@ public partial class dashboardContext : DbContext
         {
             entity.HasKey(e => e.id).HasName("addresses_pkey");
 
-            entity.Property(e => e.address1).HasColumnName("address");
+            entity.Property(e => e.address1)
+                .HasMaxLength(500)
+                .HasColumnName("address");
         });
 
         modelBuilder.Entity<article>(entity =>
@@ -106,10 +124,12 @@ public partial class dashboardContext : DbContext
 
             entity.ToTable("overfly_block1");
 
-            entity.HasOne(d => d.idadressNavigation).WithMany(p => p.overfly_block1s)
-                .HasForeignKey(d => d.idadress)
-                .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("fk_adress");
+            entity.Property(e => e.id).ValueGeneratedOnAdd();
+
+            entity.HasOne(d => d.idNavigation).WithOne(p => p.overfly_block1)
+                .HasForeignKey<overfly_block1>(d => d.id)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("overfly_block1_addresses_fk");
 
             entity.HasOne(d => d.iddistricNavigation).WithMany(p => p.overfly_block1s)
                 .HasForeignKey(d => d.iddistric)
@@ -128,17 +148,19 @@ public partial class dashboardContext : DbContext
 
             entity.ToTable("overfly_block2");
 
+            entity.HasIndex(e => e.id_address, "fki_fk_address");
+
+            entity.HasIndex(e => e.id_district, "fki_fk_district");
+
             entity.HasIndex(e => e.id_status, "fki_fk_status");
 
-            entity.HasOne(d => d.id_adressNavigation).WithMany(p => p.overfly_block2s)
-                .HasForeignKey(d => d.id_adress)
-                .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("fk_adress2");
+            entity.HasOne(d => d.id_addressNavigation).WithMany(p => p.overfly_block2s)
+                .HasForeignKey(d => d.id_address)
+                .HasConstraintName("fk_address");
 
-            entity.HasOne(d => d.id_districNavigation).WithMany(p => p.overfly_block2s)
-                .HasForeignKey(d => d.id_distric)
-                .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("fk_distric2");
+            entity.HasOne(d => d.id_districtNavigation).WithMany(p => p.overfly_block2s)
+                .HasForeignKey(d => d.id_district)
+                .HasConstraintName("fk_district");
 
             entity.HasOne(d => d.id_statusNavigation).WithMany(p => p.overfly_block2s)
                 .HasForeignKey(d => d.id_status)

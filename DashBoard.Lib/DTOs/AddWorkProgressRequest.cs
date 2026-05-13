@@ -1,21 +1,55 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text.Json.Serialization;
 
 namespace DashBoard.Lib.DTOs
 {
+
+
+    public class WorkProgressListItem
+    {
+        public int Id { get; set; }
+        public string SourseName { get; set; } = "";
+        public int AllPerimeter { get; set; }
+        public int CompletePerimeter { get; set; }
+        public DateTime CreateAt { get; set; }
+    }
+
+    public class ArticleDto
+    {
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonPropertyName("article1")]
+        public string? Article1 { get; set; }
+    }
+
+    public class SourceDto
+    {
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonPropertyName("source")]
+        public string? Source { get; set; }
+    }
     public class AddWorkProgressRequest
     {
         public int IdSourse { get; set; }
+        public string? CustomSourceName { get; set; }
         public int AllPerimeter { get; set; }
         public int CompletePerimeter { get; set; }
         public int RemainedPerimeter { get; set; }
         public string? Comment { get; set; }
-
-        public List<ViolationItem> Violations { get; set; } = new();
+        public List<ViolationRequest> Violations { get; set; } = new();
     }
+
+    public class ViolationRequest
+    {
+        public int IdArticle { get; set; }
+        public string? CustomArticleName { get; set; }
+        public int ViolationsWeek { get; set; }
+        public int NewViolations { get; set; }
+        public int OldViolations { get; set; }
+    }
+
     public class AddWorkProgressResult
     {
         public int id { get; set; }
@@ -29,4 +63,49 @@ namespace DashBoard.Lib.DTOs
         public int? NewViolations { get; set; }
         public int? OldViolations { get; set; }
     }
+    public class EditWorkProgressRequest
+    {
+        public int Id { get; set; }
+        public int IdSourse { get; set; }
+        public int AllPerimeter { get; set; }
+        public int CompletePerimeter { get; set; }
+        public int RemainedPerimeter { get; set; }
+        public string? Comment { get; set; }
+        public List<ViolationRequest> Violations { get; set; } = new();
+    }
+    public class WorkProgressResponce  
+    {
+        public int Id { get; set; }
+        public int IdSourse { get; set; }
+        public string SourseName { get; set; }
+        public int AllPerimeter { get; set; }
+        public int CompletePerimeter { get; set; }
+        public int RemainedPerimeter { get; set; }
+        public string? Comment { get; set; }
+        public DateTime CreateAt { get; set; }
+        public List<ViolationsResponse> Violations { get; set; }
+    }
+
+    public class ViolationsResponse  
+    {
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonPropertyName("idArticle")]
+        public int IdArticle { get; set; }
+
+        [JsonPropertyName("articleName")]
+        public string ArticleName { get; set; } = "";
+
+        [JsonPropertyName("violationsWeek")]
+        public int ViolationsWeek { get; set; }
+
+        [JsonPropertyName("newViolations")]
+        public int NewViolations { get; set; }
+
+        [JsonPropertyName("oldViolations")]
+        public int OldViolations { get; set; }
+    }
+
+
 }

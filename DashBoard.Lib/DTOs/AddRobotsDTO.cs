@@ -30,6 +30,7 @@ namespace DashBoard.Lib.DTOs
     public class PeriodGroup
     {
         public DateTime? Month { get; set; }
+        public int? CountApplications { get; set; }
         public List<NewChartBlockDto> Charts { get; set; } = new();
     }
     public class NewChartBlockDto
@@ -54,10 +55,12 @@ namespace DashBoard.Lib.DTOs
         public int Id { get; set; }
         public string Name { get; set; }
         public string ShortName { get; set; }
+        public int? CountApplications { get; set; }
         public List<PeriodGroupDTO> Periods { get; set; }
     }
     public class PeriodGroupDTO
     {
+        public int? CountApplications { get; set; }
         public DateTime? Month { get; set; }
         public List<NewChartBlockDto> Charts { get; set; }
     }

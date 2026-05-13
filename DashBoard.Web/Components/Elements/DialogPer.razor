@@ -1,7 +1,7 @@
 ﻿<MudButton Variant="Variant.Filled" OnClick="ToggleFilter">
     Выбрать период
 </MudButton>
-<MudPopover Open="_open" AnchorOrigin="Origin.BottomCenter">
+<MudPopover Open="_open" AnchorOrigin="Origin.CenterCenter">
 <MudPaper Class="pa-4">
 
         <MudSelect T="int?" Label="@ResForBodyPage.Year" @bind-Value="_year">
@@ -9,14 +9,14 @@
         <MudSelectItem T="int?" Value="2026">2026</MudSelectItem>
         <MudSelectItem T="int?" Value="2025">2025</MudSelectItem>
         </MudSelect>
-        <MudSelect T="int?" Label="@ResForBodyPage.Qartal" @bind-Value="_quarter">
+        <MudSelect Disabled="@(_month.HasValue)" T="int?" Label="@ResForBodyPage.Qartal" @bind-Value="_quarter">
             <MudSelectItem T="int?" Value="@((int?)null)">Все</MudSelectItem>
             <MudSelectItem T="int?" Value="1">1</MudSelectItem>
             <MudSelectItem T="int?" Value="2">2</MudSelectItem>
             <MudSelectItem T="int?" Value="3">3</MudSelectItem>
             <MudSelectItem T="int?" Value="4">4</MudSelectItem>
         </MudSelect>
-        <MudSelect T="int?" Label="@ResForBodyPage.Month" @bind-Value="_month">
+        <MudSelect Disabled="@(_quarter.HasValue)" T="int?" Label="@ResForBodyPage.Month" @bind-Value="_month">
            
         <MudSelectItem T="int?" Value="@((int?)null)">Все</MudSelectItem>
         <MudSelectItem T="int?" Value="1">1</MudSelectItem>

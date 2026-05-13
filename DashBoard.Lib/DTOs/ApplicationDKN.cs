@@ -9,6 +9,6 @@ namespace DashBoard.Lib.DTOs
     public class ApplicationDKN
     {
         public string Name { get; set; } = "";
-        public int CountApplications { get; set; }
+        public int? CountApplications { get; set; }
     }
 }

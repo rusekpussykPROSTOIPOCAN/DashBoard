@@ -15,7 +15,9 @@ public partial class overfly_block1
 
     public int? idviolation { get; set; }
 
-    public virtual address? idadressNavigation { get; set; }
+    public DateOnly? date_detection { get; set; }
+
+    public virtual address idNavigation { get; set; } = null!;
 
     public virtual district? iddistricNavigation { get; set; }
 
