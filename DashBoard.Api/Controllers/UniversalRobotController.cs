@@ -26,6 +26,12 @@ namespace DashBoard.Api.Controllers
         {
             try
             {
+                // Сначала получаем ВСЕХ роботов
+                var allRobots = await _dashboard.robots
+                    .Where(r => r.robots_analitics.Any(ra => ra.isactive == true))
+                    .Select(r => r.name)
+                    .ToListAsync();
+
                 var sql = @" 
             SELECT
                 r.name as robot_name,
@@ -43,7 +49,6 @@ namespace DashBoard.Api.Controllers
                     sql += " AND EXTRACT(YEAR FROM ra.datestatistic) = @yr";
                     parameters.Add(new NpgsqlParameter("yr", year.Value));
                 }
-
                 if (quarter.HasValue)
                 {
                     int startMonth = (quarter.Value - 1) * 3 + 1;
@@ -57,19 +62,16 @@ namespace DashBoard.Api.Controllers
 
                 await using var conn = _dashboard.Database.GetDbConnection();
                 await conn.OpenAsync();
-
                 await using var cmd = conn.CreateCommand();
                 cmd.CommandText = sql;
                 cmd.Parameters.AddRange(parameters.ToArray());
-
                 await using var reader = await cmd.ExecuteReaderAsync();
 
                 var monthNames = new[] { "", "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
                                   "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь" };
 
-                // data[robotName][monthLabel][blockName][detailName] = value
                 var robotData = new Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, int>>>>();
-                var sumData = new Dictionary<string, Dictionary<string, Dictionary<string, int>>>(); // sums
+                var sumData = new Dictionary<string, Dictionary<string, Dictionary<string, int>>>();
                 var allMonthsSet = new HashSet<string>();
                 var allBlocksSet = new HashSet<string>();
 
@@ -83,8 +85,6 @@ namespace DashBoard.Api.Controllers
                     var monthLabel = $"{monthNames[monthNum]} {yearNum}";
                     allMonthsSet.Add(monthLabel);
 
-                    var blocks = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonData);
-
                     if (!robotData.ContainsKey(robotName))
                         robotData[robotName] = new Dictionary<string, Dictionary<string, Dictionary<string, int>>>();
 
@@ -96,33 +96,37 @@ namespace DashBoard.Api.Controllers
                     if (!sumData[robotName].ContainsKey(monthLabel))
                         sumData[robotName][monthLabel] = new Dictionary<string, int>();
 
+                    Dictionary<string, JsonElement>? blocks = null;
+                    try { blocks = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonData); }
+                    catch { continue; }
+
+                    if (blocks == null) continue;
+
                     foreach (var kvpBlock in blocks)
                     {
                         var blockName = kvpBlock.Key;
                         allBlocksSet.Add(blockName);
-
                         var blockValue = kvpBlock.Value;
+                        if (blockValue.ValueKind != JsonValueKind.Object) continue;
 
-                        // Сумма
                         int blockSum = 0;
-                        if (blockValue.TryGetProperty("сумма", out var sumEl))
+                        if (blockValue.TryGetProperty("сумма", out var sumEl) && sumEl.ValueKind == JsonValueKind.Number)
                             blockSum = sumEl.GetInt32();
 
                         sumData[robotName][monthLabel][blockName] = blockSum;
 
-                        // Детали
                         JsonElement detailsEl;
-                        bool hasDetails = blockValue.TryGetProperty("детали", out detailsEl) ||
-                                          blockValue.TryGetProperty("Details", out detailsEl);
-
-                        if (hasDetails)
+                        if ((blockValue.TryGetProperty("детали", out detailsEl) ||
+                             blockValue.TryGetProperty("Details", out detailsEl)) &&
+                            detailsEl.ValueKind == JsonValueKind.Object)
                         {
                             if (!robotData[robotName][monthLabel].ContainsKey(blockName))
                                 robotData[robotName][monthLabel][blockName] = new Dictionary<string, int>();
 
                             foreach (var detail in detailsEl.EnumerateObject())
                             {
-                                robotData[robotName][monthLabel][blockName][detail.Name] = detail.Value.GetInt32();
+                                if (detail.Value.ValueKind == JsonValueKind.Number)
+                                    robotData[robotName][monthLabel][blockName][detail.Name] = detail.Value.GetInt32();
                             }
                         }
                     }
@@ -141,7 +145,8 @@ namespace DashBoard.Api.Controllers
                 sheet.Cell(row, 1).Style.Font.Bold = true;
                 row++;
 
-                // Месяцы
+                // Заголовки месяцев
+                sheet.Cell(row, 1).Value = "";
                 col = 2;
                 foreach (var m in sortedMonths)
                 {
@@ -151,28 +156,35 @@ namespace DashBoard.Api.Controllers
                 }
                 row++;
 
-                // Роботы
-                foreach (var robotKvp in robotData.OrderBy(r => r.Key))
+                // Используем allRobots вместо robotData.Keys, чтобы сохранить порядок и не пропускать
+                foreach (var rName in allRobots.OrderBy(r => r))
                 {
-                    var rName = robotKvp.Key;
-
                     sheet.Cell(row, 1).Value = rName;
                     sheet.Cell(row, 1).Style.Font.Bold = true;
                     row++;
+
+                    if (!robotData.ContainsKey(rName))
+                    {
+                        row++;
+                        continue;
+                    }
 
                     foreach (var blockName in allBlocksSet.OrderBy(b => b))
                     {
                         sheet.Cell(row, 1).Value = blockName;
                         row++;
 
-                        // Все детали для этого блока
+                        // Собираем все детали
                         var allDetails = new HashSet<string>();
-                        foreach (var monthKvp in robotKvp.Value)
+                        if (robotData.ContainsKey(rName))
                         {
-                            if (monthKvp.Value.ContainsKey(blockName))
+                            foreach (var monthKvp in robotData[rName])
                             {
-                                foreach (var d in monthKvp.Value[blockName].Keys)
-                                    allDetails.Add(d);
+                                if (monthKvp.Value.ContainsKey(blockName))
+                                {
+                                    foreach (var d in monthKvp.Value[blockName].Keys)
+                                        allDetails.Add(d);
+                                }
                             }
                         }
 
@@ -183,11 +195,11 @@ namespace DashBoard.Api.Controllers
                             col = 2;
                             foreach (var m in sortedMonths)
                             {
-                                if (robotKvp.Value.ContainsKey(m) &&
-                                    robotKvp.Value[m].ContainsKey(blockName) &&
-                                    robotKvp.Value[m][blockName].ContainsKey(detail))
+                                if (robotData[rName].ContainsKey(m) &&
+                                    robotData[rName][m].ContainsKey(blockName) &&
+                                    robotData[rName][m][blockName].ContainsKey(detail))
                                 {
-                                    sheet.Cell(row, col).Value = robotKvp.Value[m][blockName][detail];
+                                    sheet.Cell(row, col).Value = robotData[rName][m][blockName][detail];
                                 }
                                 col++;
                             }
@@ -216,7 +228,7 @@ namespace DashBoard.Api.Controllers
                 }
 
                 sheet.Column(1).Width = 50;
-                for (int i = 2; i <= col; i++)
+                for (int i = 2; i <= col + 1; i++)
                     sheet.Column(i).Width = 15;
 
                 using var stream = new MemoryStream();
@@ -229,71 +241,81 @@ namespace DashBoard.Api.Controllers
             }
             catch (Exception ex)
             {
-                return Ok(new { error = ex.Message, stackTrace = ex.StackTrace?.Substring(0, 500) });
+                return Ok(new { error = ex.Message });
             }
         }
         [HttpGet]
         public async Task<IActionResult> Get(
-            [FromQuery] int? year,
-            [FromQuery] int? month,
-            [FromQuery] int? quarter,
-            [FromQuery] int? robotId)
+     [FromQuery] int? year,
+     [FromQuery] int? month,
+     [FromQuery] int? quarter,
+     [FromQuery] int? robotId)
         {
             try
             {
                 var sql = @" 
-                    SELECT
-                        r.id as robot_id,
-                        r.name as robot_name,
-                        block.key AS block,
-                        COALESCE(block.value->>'Type', block.value->>'type') AS type,
-                        detail.key AS detail_key,
-                        SUM(
-                            CASE
-                                WHEN detail.key IS NULL
-                                    THEN (block.value->>'сумма')::int
-                                ELSE
-                                    CASE 
-                                        WHEN jsonb_typeof(detail.value) = 'number'
-                                            THEN detail.value::int
-                                        WHEN jsonb_typeof(detail.value) = 'string'
-                                             AND detail.value::text ~ '^\d+$'
-                                            THEN (detail.value::text)::int
-                                        ELSE 0
-                                    END
+            SELECT
+                r.id as robot_id,
+                r.name as robot_name,
+                block.key AS block,
+                COALESCE(block.value->>'Type', block.value->>'type') AS type,
+                detail.key AS detail_key,
+                SUM(
+                    CASE
+                        WHEN detail.key IS NULL
+                            THEN (block.value->>'сумма')::int
+                        ELSE
+                            CASE 
+                                WHEN jsonb_typeof(detail.value) = 'number'
+                                    THEN detail.value::int
+                                WHEN jsonb_typeof(detail.value) = 'string'
+                                     AND detail.value::text ~ '^\d+$'
+                                    THEN (detail.value::text)::int
+                                ELSE 0
                             END
-                        ) AS detail_value
-                    FROM robots_analitic ra
-                    CROSS JOIN LATERAL jsonb_each(ra.data_analize) AS block(key, value)
-                    LEFT JOIN LATERAL jsonb_each(
-                        COALESCE(block.value->'Details', block.value->'детали', '{}'::jsonb)
-                    ) AS detail ON true
-                    LEFT JOIN robots r ON r.id = ra.idrobots
-                    WHERE 
-                        ra.isactive = true
-                        AND EXTRACT(YEAR FROM ra.datestatistic)::int =
-                            COALESCE(@year, EXTRACT(YEAR FROM ra.datestatistic)::int)
-                        AND EXTRACT(MONTH FROM ra.datestatistic)::int =
-                            COALESCE(@month, EXTRACT(MONTH FROM ra.datestatistic)::int)
-                        AND EXTRACT(QUARTER FROM ra.datestatistic)::int =
-                            COALESCE(@quarter, EXTRACT(QUARTER FROM ra.datestatistic)::int)
-                        AND ra.idrobots =
-                            COALESCE(@robotId, ra.idrobots)
-                    GROUP BY r.id, r.name, block.key, block.value, detail.key";
+                    END
+                ) AS detail_value
+            FROM robots_analitic ra
+            CROSS JOIN LATERAL jsonb_each(ra.data_analize) AS block(key, value)
+            LEFT JOIN LATERAL jsonb_each(
+                COALESCE(block.value->'Details', block.value->'детали', '{}'::jsonb)
+            ) AS detail ON true
+            LEFT JOIN robots r ON r.id = ra.idrobots
+            WHERE ra.isactive = true";
+
+                var parameters = new List<NpgsqlParameter>();
+
+                if (year.HasValue)
+                {
+                    sql += " AND EXTRACT(YEAR FROM ra.datestatistic) = @year";
+                    parameters.Add(new NpgsqlParameter("year", year.Value));
+                }
+                if (month.HasValue)
+                {
+                    sql += " AND EXTRACT(MONTH FROM ra.datestatistic) = @month";
+                    parameters.Add(new NpgsqlParameter("month", month.Value));
+                }
+                if (quarter.HasValue)
+                {
+                    sql += " AND EXTRACT(QUARTER FROM ra.datestatistic) = @quarter";
+                    parameters.Add(new NpgsqlParameter("quarter", quarter.Value));
+                }
+                if (robotId.HasValue)
+                {
+                    sql += " AND ra.idrobots = @robotId";
+                    parameters.Add(new NpgsqlParameter("robotId", robotId.Value));
+                }
+
+                sql += " GROUP BY r.id, r.name, block.key, block.value, detail.key ORDER BY r.name, block.key";
 
                 await using var conn = _dashboard.Database.GetDbConnection();
                 await conn.OpenAsync();
-
                 await using var cmd = conn.CreateCommand();
                 cmd.CommandText = sql;
-
-                cmd.Parameters.Add(new NpgsqlParameter("year", (object?)year ?? DBNull.Value));
-                cmd.Parameters.Add(new NpgsqlParameter("month", (object?)month ?? DBNull.Value));
-                cmd.Parameters.Add(new NpgsqlParameter("quarter", (object?)quarter ?? DBNull.Value));
-                cmd.Parameters.Add(new NpgsqlParameter("robotId", (object?)robotId ?? DBNull.Value));
-
+                cmd.Parameters.AddRange(parameters.ToArray());
                 await using var reader = await cmd.ExecuteReaderAsync();
 
+                // Ключ: robotId_block - чтобы не смешивать роботов
                 var map = new Dictionary<string, UniversalChartResponseV3>();
 
                 while (await reader.ReadAsync())
@@ -305,7 +327,10 @@ namespace DashBoard.Api.Controllers
                     var detailKey = reader.IsDBNull(4) ? null : reader.GetString(4);
                     var value = reader.IsDBNull(5) ? 0 : reader.GetInt32(5);
 
-                    if (!map.TryGetValue(block, out var chart))
+                    // Уникальный ключ: робот + блок
+                    var mapKey = $"{robotID}_{block}";
+
+                    if (!map.TryGetValue(mapKey, out var chart))
                     {
                         chart = new UniversalChartResponseV3
                         {
@@ -317,33 +342,17 @@ namespace DashBoard.Api.Controllers
                             Items = new(),
                             Total = 0
                         };
-                        map[block] = chart;
+                        map[mapKey] = chart;
                     }
 
                     if (!string.IsNullOrEmpty(detailKey))
                     {
                         var item = chart.Items.FirstOrDefault(x => x.Key == detailKey);
                         if (item == null)
-                        {
                             chart.Items.Add(new UniversalChartItemV3 { Key = detailKey, Value = value });
-                        }
                         else
-                        {
                             item.Value += value;
-                        }
-                        chart.Total += value;
-                    }
-                    else
-                    {
-                        var item = chart.Items.FirstOrDefault(x => x.Key == detailKey);
-                        if (item == null)
-                        {
-                            chart.Items.Add(new UniversalChartItemV3 { Key = detailKey, Value = value });
-                        }
-                        else
-                        {
-                            item.Value += value;
-                        }
+
                         chart.Total += value;
                     }
                 }
@@ -357,7 +366,7 @@ namespace DashBoard.Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Ошибка: {ex.Message}");
+                return Ok(new { error = ex.Message });
             }
         }
 

@@ -97,26 +97,67 @@ namespace DashBoard.Api.Controllers
                         Charts = new List<NewChartBlockDto>()
                     };
 
-                    var dataBlocks = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(item.data_analize);
+                    Dictionary<string, JsonElement> dataBlocks;
+                    try
+                    {
+                        dataBlocks = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(item.data_analize)
+                            ?? new Dictionary<string, JsonElement>();
+                    }
+                    catch
+                    {
+                        continue;
+                    }
 
                     foreach (var block in dataBlocks)
                     {
-                        var chartData = block.Value;
-                        var chart = new NewChartBlockDto
+                        try
                         {
-                            Title = block.Key,
-                            Type = Enum.Parse<ChartTypeRobot>(chartData.GetProperty("type").GetString()),
-                            Sum = chartData.GetProperty("сумма").GetDouble(),
-                            Details = new Dictionary<string, double>()
-                        };
+                            var chartData = block.Value;
 
-                        var detailsElement = chartData.GetProperty("детали");
-                        foreach (var detail in detailsElement.EnumerateObject())
-                        {
-                            chart.Details[detail.Name] = detail.Value.GetDouble();
+                            // Безопасное получение типа
+                            ChartTypeRobot chartType = ChartTypeRobot.Bar; // По умолчанию
+                            if (chartData.TryGetProperty("type", out var typeEl))
+                            {
+                                var typeStr = typeEl.GetString() ?? "Bar";
+                                Enum.TryParse(typeStr, true, out chartType);
+                            }
+
+                            // Безопасное получение суммы
+                            double sum = 0;
+                            if (chartData.TryGetProperty("сумма", out var sumEl))
+                                sum = sumEl.GetDouble();
+
+                            var chart = new NewChartBlockDto
+                            {
+                                Title = block.Key,
+                                Type = chartType,
+                                Sum = sum,
+                                Details = new Dictionary<string, double>()
+                            };
+
+                            // Безопасное получение деталей
+                            if (chartData.TryGetProperty("детали", out var detailsEl))
+                            {
+                                foreach (var detail in detailsEl.EnumerateObject())
+                                {
+                                    chart.Details[detail.Name] = detail.Value.GetDouble();
+                                }
+                            }
+                            else if (chartData.TryGetProperty("Details", out detailsEl))
+                            {
+                                foreach (var detail in detailsEl.EnumerateObject())
+                                {
+                                    chart.Details[detail.Name] = detail.Value.GetDouble();
+                                }
+                            }
+
+                            period.Charts.Add(chart);
                         }
-
-                        period.Charts.Add(chart);
+                        catch
+                        {
+                            // Пропускаем битые блоки
+                            continue;
+                        }
                     }
 
                     periods.Add(period);
@@ -135,7 +176,7 @@ namespace DashBoard.Api.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return Ok(new { error = ex.Message, detail = ex.InnerException?.Message });
             }
         }
 
