@@ -295,7 +295,7 @@ private OverflyBlock1Item? _currentEditingBlock1Item;
     {
         if (value == -1)
         {
-            // Выбрано "Другое"
+            
             _showCustomAddress = true;
             item.IdAddress = null;
             item.AddressName = "";
@@ -303,7 +303,7 @@ private OverflyBlock1Item? _currentEditingBlock1Item;
         else
         {
             _showCustomAddress = false;
-            // Находим имя выбранного адреса
+            
             var address = _addresses.FirstOrDefault(a => a.Id == value);
             item.AddressName = address?.Name ?? "";
         }
@@ -335,7 +335,7 @@ private OverflyBlock1Item? _currentEditingBlock1Item;
         }
     }
 
-    // Block 2 операции
+    
     private async Task AddNewBlock2()
     {
         _showCustomAddress = false;
@@ -353,7 +353,7 @@ private OverflyBlock1Item? _currentEditingBlock1Item;
         _currentEditingItem = item;
         _showCustomAddress = false;
         
-        // Если у элемента есть AddressName, но нет IdAddress - значит это пользовательский адрес
+        
         if (!string.IsNullOrEmpty(item.AddressName) && item.IdAddress == null)
         {
             _showCustomAddress = true;
@@ -376,7 +376,6 @@ private OverflyBlock1Item? _currentEditingBlock1Item;
 {
     try
     {
-        // Проверяем, выбрано ли "Другое"
         if (item.IdAddress == -1)
         {
             item.IdAddress = null;
@@ -416,19 +415,12 @@ private OverflyBlock1Item? _currentEditingBlock1Item;
             
             if (response != null)
             {
-                // Обновляем свойства существующего элемента
-                item.Id = response.Id;
-                item.StatusName = response.StatusName;
-                item.AddressName = response.AddressName;
-                item.DistrictName = response.DistrictName;
-                
                 Snackbar.Add("Запись добавлена", Severity.Success);
                 _showCustomAddress = false;
                 _currentEditingItem = null;
                 
-                // Принудительно пересоздаем список для обновления DataGrid
-                var tempList = _block2Items.ToList();
-                _block2Items = tempList;
+               
+                await LoadBlock2();
                 StateHasChanged();
             }
         }
@@ -438,17 +430,15 @@ private OverflyBlock1Item? _currentEditingBlock1Item;
             Snackbar.Add("Запись обновлена", Severity.Success);
             _showCustomAddress = false;
             _currentEditingItem = null;
+            
+           
+            await LoadBlock2();
+            StateHasChanged();
         }
     }
     catch (Exception ex)
     {
         Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
-        if (item.Id == 0)
-        {
-            _block2Items.Remove(item);
-            _block2Items = _block2Items.ToList();
-            StateHasChanged();
-        }
     }
     
     return DataGridEditFormAction.Close;
@@ -472,7 +462,7 @@ private OverflyBlock1Item? _currentEditingBlock1Item;
         }
     }
 
-    // Block 1 операции
+    
    
 
    private void StartedEditingBlock1(OverflyBlock1Item item) 
@@ -480,7 +470,7 @@ private OverflyBlock1Item? _currentEditingBlock1Item;
     _currentEditingBlock1Item = item;
     _showCustomViolation = false;
     
-    // Если у элемента есть ViolationName, но нет IdViolation - значит это пользовательское нарушение
+
     if (!string.IsNullOrEmpty(item.ViolationName) && item.IdViolation == null)
     {
         _showCustomViolation = true;
@@ -500,11 +490,10 @@ private void CanceledEditingBlock1(OverflyBlock1Item item)
 }
 
 
-   private async Task<DataGridEditFormAction> CommittedBlock1Changes(OverflyBlock1Item item)
+  private async Task<DataGridEditFormAction> CommittedBlock1Changes(OverflyBlock1Item item)
 {
     try
     {
-        // Проверяем, выбрано ли "Другое"
         if (item.IdViolation == -1)
         {
             item.IdViolation = null;
@@ -544,16 +533,12 @@ private void CanceledEditingBlock1(OverflyBlock1Item item)
             
             if (response != null)
             {
-                item.Id = response.Id;
-                item.DistrictName = response.DistrictName;
-                item.ViolationName = response.ViolationName;
-                
                 Snackbar.Add("Запись добавлена", Severity.Success);
                 _showCustomViolation = false;
                 _currentEditingBlock1Item = null;
                 
-                var tempList = _block1Items.ToList();
-                _block1Items = tempList;
+                // Перезагружаем ВСЕ данные
+                await LoadBlock1();
                 StateHasChanged();
             }
         }
@@ -563,21 +548,20 @@ private void CanceledEditingBlock1(OverflyBlock1Item item)
             Snackbar.Add("Запись обновлена", Severity.Success);
             _showCustomViolation = false;
             _currentEditingBlock1Item = null;
+            
+            // Перезагружаем данные
+            await LoadBlock1();
+            StateHasChanged();
         }
     }
     catch (Exception ex)
     {
         Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
-        if (item.Id == 0)
-        {
-            _block1Items.Remove(item);
-            _block1Items = _block1Items.ToList();
-            StateHasChanged();
-        }
     }
     
     return DataGridEditFormAction.Close;
 }
+
     private async void DeleteBlock1(OverflyBlock1Item item)
     {
         try
