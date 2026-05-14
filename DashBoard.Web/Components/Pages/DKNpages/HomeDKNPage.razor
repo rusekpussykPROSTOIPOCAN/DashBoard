@@ -7,13 +7,8 @@
 <PageTitle>@Departs.DepartsSecond</PageTitle>
 <MudContainer MaxWidth="MaxWidth.Large">
     <MudGrid Justify="Justify.Center">
-        <MudItem class="ml-20" sm="3" xs="6">
-            <MudButton StartIcon="@Icons.Material.Filled.TableChart" IconColor="Color.Success">@ResForBodyPage.Table</MudButton>
-        </MudItem>
-        @* <MudItem sm="3" xs="6">
-                <MudDateRangePicker PickerVariant="PickerVariant.Inline" Modal="false" />
-        </MudItem>
-         *@
+      
+    
         <MudItem class="ml-20" sm="3" xs="6">
           <DialogPer OnChange="OnPeriodChanged"/>
         </MudItem>
@@ -63,16 +58,7 @@
 </MudExpansionPanels>
         </MudItem>
       
-      @*   <MudItem xs="12" >
-            <MudText Align="Align.Center">
-                Точность ИНС
-            </MudText>
-                <MudChart ChartType="ChartType.Line" ChartSeries="@_series" ChartLabels="@_xAxisLabels"  Width="100%" Height="350px">
-                    
-                </MudChart>
-           
-        </MudItem> *@
-
+    
     </MudGrid>
    
 </MudContainer>
@@ -110,13 +96,13 @@
             if (_month.HasValue) query.Add($"month={_month}");
             if (_quarter.HasValue) query.Add($"quarter={_quarter}");
 
-            // Загружаем заявки
+           
             var appsUrl = "api/ApplicatonsHomeDKN";
             if (query.Any())
                 appsUrl += "?" + string.Join("&", query);
             apps = await api.GetAsync<List<ApplicationDKN>>(appsUrl);
 
-            // Загружаем площадь по статусам с теми же параметрами
+           
             var sqrUrl = "api/SqrByStatus";
             if (query.Any())
                 sqrUrl += "?" + string.Join("&", query);
