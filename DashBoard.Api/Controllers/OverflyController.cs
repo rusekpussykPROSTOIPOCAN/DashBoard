@@ -3,6 +3,8 @@ using DashBoard.Lib.DTOs;
 using DashBoard.Lib.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
+using DashBoard.Api.Services;
 
 namespace DashBoard.Api.Controllers
 {
@@ -14,6 +16,112 @@ namespace DashBoard.Api.Controllers
         {
         }
 
+        [HttpGet("export-overfly")]
+        public async Task<IActionResult> ExportOverfly(
+    [FromServices] ExcelExportService excelService,
+    int? year = null, int? month = null, int? quarter = null)
+        {
+            try
+            {
+                var query = _dashboard.overfly_block2s
+                    .Include(o => o.id_statusNavigation)
+                    .Include(o => o.id_addressNavigation)
+                    .Include(o => o.id_districtNavigation)
+                    .AsQueryable();
+
+                if (year.HasValue)
+                    query = query.Where(o => o.date_get_materials.HasValue && o.date_get_materials.Value.Year == year.Value);
+                if (month.HasValue)
+                    query = query.Where(o => o.date_get_materials.HasValue && o.date_get_materials.Value.Month == month.Value);
+                if (quarter.HasValue)
+                {
+                    var startMonth = (quarter.Value - 1) * 3 + 1;
+                    var endMonth = startMonth + 2;
+                    query = query.Where(o => o.date_get_materials.HasValue &&
+                                          o.date_get_materials.Value.Month >= startMonth &&
+                                          o.date_get_materials.Value.Month <= endMonth);
+                }
+
+                var data = await query.OrderByDescending(o => o.id).ToListAsync();
+
+                var rows = new List<Dictionary<string, object>>();
+
+                foreach (var item in data)
+                {
+                    rows.Add(new Dictionary<string, object>
+                    {
+                        ["ID"] = item.id,
+                        ["Район"] = item.id_districtNavigation?.name ?? "",
+                        ["Статус"] = item.id_statusNavigation?.name ?? "",
+                        ["Адрес"] = item.id_addressNavigation?.address1 ?? "",
+                        ["Площадь"] = item.square ?? 0,
+                        ["Дата"] = item.date_get_materials?.ToString("dd.MM.yyyy") ?? ""
+                    });
+                }
+
+                var fileBytes = excelService.ExportToExcel(rows, "Облёт");
+                var base64 = Convert.ToBase64String(fileBytes);
+                var fileName = $"overfly_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+
+                return Ok(new { base64, fileName });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+        [HttpGet("export-overfly-block1")]
+        public async Task<IActionResult> ExportOverflyBlock1(
+    [FromServices] ExcelExportService excelService,
+    int? year = null, int? month = null, int? quarter = null)
+        {
+            try
+            {
+                var query = _dashboard.overfly_block1s
+                    .Include(o => o.iddistricNavigation)
+                    .Include(o => o.idviolationNavigation)
+                    .AsQueryable();
+
+                if (year.HasValue)
+                    query = query.Where(x => x.date_detection.HasValue && x.date_detection.Value.Year == year.Value);
+                if (month.HasValue)
+                    query = query.Where(x => x.date_detection.HasValue && x.date_detection.Value.Month == month.Value);
+                if (quarter.HasValue)
+                {
+                    var startMonth = (quarter.Value - 1) * 3 + 1;
+                    var endMonth = startMonth + 2;
+                    query = query.Where(o => o.date_detection.HasValue &&
+                                          o.date_detection.Value.Month >= startMonth &&
+                                          o.date_detection.Value.Month <= endMonth);
+                }
+
+                var data = await query.OrderByDescending(o => o.id).ToListAsync();
+
+                var rows = new List<Dictionary<string, object>>();
+
+                foreach (var item in data)
+                {
+                    rows.Add(new Dictionary<string, object>
+                    {
+                        ["ID"] = item.id,
+                        ["Район"] = item.iddistricNavigation?.name ?? "",
+                        ["Нарушение"] = item.idviolationNavigation?.name ?? "",
+                        ["Количество"] = item.quantitynewviolation ?? 0,
+                        ["Дата"] = item.date_detection?.ToString("dd.MM.yyyy") ?? ""
+                    });
+                }
+
+                var fileBytes = excelService.ExportToExcel(rows, "Нарушения");
+                var base64 = Convert.ToBase64String(fileBytes);
+                var fileName = $"violations_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+
+                return Ok(new { base64, fileName });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
         [HttpGet("districts")]
         public async Task<IActionResult> GetDistricts()
         {

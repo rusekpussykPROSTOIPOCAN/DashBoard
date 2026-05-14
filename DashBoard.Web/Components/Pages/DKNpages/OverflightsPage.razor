@@ -1,16 +1,29 @@
 ﻿@page "/overflight"
 @inject Services.ApiService api
+@inject ISnackbar Snackbar
+@inject IJSRuntime JSRuntime
+
 <PageTitle>@Departs.overflights</PageTitle>
 <MudGrid>
     <MudItem xs="6">
         <DialogPer OnChange="OnPeriodChanged" />
     </MudItem>
-    <MudItem Class="d-flex justify-sm-end justify-center pr-sm-4" xs="6">
+    <MudItem Class="d-flex justify-sm-end justify-center pr-sm-4 gap-2" xs="6">
+        <!-- Кнопка экспорта с выбором -->
+        <MudMenu Label="Excel"
+                 Icon="@Icons.Material.Filled.FileDownload"
+                 Variant="Variant.Outlined"
+                 Color="Color.Info">
+            <MudMenuItem OnClick="@(() => ExportOverfly("block2"))">Экспорт заявок</MudMenuItem>
+            <MudMenuItem OnClick="@(() => ExportOverfly("block1"))">Экспорт нарушений</MudMenuItem>
+        </MudMenu>
+        
         <MudButton Href="/overflight/edit">Обновить данные</MudButton>
     </MudItem>
     <MudItem xs="12" sm="6">
         <MudText Class="my-5" Align="Align.Center">@ResForBodyPage.tokens</MudText>
-        <MudChart T="double"  ChartType="ChartType.Donut" Width="100%" Height="300px" ChartSeries="@_statusSeries" ChartLabels="@_statusLabels">
+        <MudChart T="double" ChartType="ChartType.Donut" Width="100%" Height="300px"
+                  ChartSeries="@_statusSeries" ChartLabels="@_statusLabels">
             <CustomGraphics>
                 <text class="mud-donut-text mud-typography-h3" x="50%" y="50%">@_data?.CountStatus</text>
             </CustomGraphics>
@@ -27,29 +40,66 @@
             </CustomGraphics>
         </MudChart>
     </MudItem>
-    <MudItem  xs="12">
+    <MudItem xs="12">
         <MudText Class="my-5" Align="Align.Center">@ResForBodyPage.viols</MudText>
-        <MudChart ChartType="ChartType.Bar" ChartSeries="@_districtSeries" ChartLabels="@_districtLabels" Width="100%" Height="350px">
-</MudChart>
+        <MudChart ChartType="ChartType.Bar" ChartSeries="@_districtSeries"
+                  ChartLabels="@_districtLabels" Width="100%" Height="350px">
+        </MudChart>
     </MudItem>
 </MudGrid>
+
 @code {
     private OverflyDTO? _data;
-
-
     private List<ChartSeries<double>> _statusSeries = new();
     private string[] _statusLabels = Array.Empty<string>();
-    private List<ChartSeries<double>> _dateSeries = new();
-    private string[] _dateLabels = Array.Empty<string>();
     private List<ChartSeries<double>> _districtSeries = new();
     private string[] _districtLabels = Array.Empty<string>();
 
     private OverflyDTO? _block1Data;
     private List<ChartSeries<double>> _violationDateSeries = new();
     private string[] _violationDateLabels = Array.Empty<string>();
+    
     private int? _year;
     private int? _quarter;
     private int? _month;
+
+    private async Task ExportOverfly(string table)
+    {
+        try
+        {
+            var url = table == "block2"
+                ? "api/overfly/export-overfly"
+                : "api/overfly/export-overfly-block1";
+
+            var query = new List<string>();
+            if (_year.HasValue) query.Add($"year={_year}");
+            if (_month.HasValue) query.Add($"month={_month}");
+            if (_quarter.HasValue) query.Add($"quarter={_quarter}");
+            
+            if (query.Any())
+                url += "?" + string.Join("&", query);
+
+            var result = await api.GetAsync<ExportResult>(url);
+        
+            if (result != null && !string.IsNullOrEmpty(result.Base64))
+            {
+                await JSRuntime.InvokeVoidAsync("downloadFile",
+                    result.FileName, result.Base64,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                Snackbar.Add("Файл скачан", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
+        }
+    }
+
+    public class ExportResult
+    {
+        public string Base64 { get; set; } = "";
+        public string FileName { get; set; } = "";
+    }
 
     private async Task OnPeriodChanged(DialogPer.Periods periods)
     {
@@ -70,16 +120,14 @@
             
             var queryString = query.Any() ? "?" + string.Join("&", query) : "";
 
-          
             var task1 = api.GetAsync<OverflyDTO>($"api/overfly/get-overfly{queryString}");
             var task2 = api.GetAsync<OverflyDTO>($"api/overfly/block-1{queryString}");
             
             await Task.WhenAll(task1, task2);
             
-            _data = task1.Result; 
-            _block1Data = task2.Result;  
+            _data = task1.Result;
+            _block1Data = task2.Result;
 
-            
             if (_data != null)
             {
                 _statusSeries = new List<ChartSeries<double>>
@@ -103,7 +151,6 @@
                 _districtLabels = _data.overflyByDistricts.Select(d => d.DistrictName).ToArray();
             }
 
-        
             if (_block1Data != null)
             {
                 _violationDateSeries = new List<ChartSeries<double>>
@@ -114,8 +161,7 @@
                         Data = _block1Data.overflyStatusCounts.Select(d => (double)d.Count).ToArray()
                     }
                 };
-                _violationDateLabels = 
-                   _block1Data.overflyStatusCounts.Select(s => s.StatusName).ToArray();
+                _violationDateLabels = _block1Data.overflyStatusCounts.Select(s => s.StatusName).ToArray();
             }
 
             StateHasChanged();
@@ -125,7 +171,6 @@
             Console.WriteLine($"Error: {ex.Message}");
         }
     }
-    
 
     protected override async Task OnInitializedAsync()
     {

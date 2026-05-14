@@ -1,10 +1,10 @@
 
+using DashBoard.Api.Services;
 using DashBoard.Lib.Data;
 using Microsoft.EntityFrameworkCore;
 
 
 var builder = WebApplication.CreateBuilder(args);
-
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
@@ -23,6 +23,7 @@ builder.WebHost.ConfigureKestrel(options =>
 builder.Services.AddDbContext<dashboardContext>(options =>
     options.UseNpgsql(connectionString));
 
+builder.Services.AddScoped<ExcelExportService>();
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())

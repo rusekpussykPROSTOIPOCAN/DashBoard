@@ -1,4 +1,7 @@
-﻿using DashBoard.Lib.Data;
+﻿using ClosedXML.Excel;
+using ClosedXML.Graphics;
+using DashBoard.Api.Services;
+using DashBoard.Lib.Data;
 using DashBoard.Lib.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,7 +18,220 @@ namespace DashBoard.Api.Controllers
         public UniversalRobotController(dashboardContext dashboard) : base(dashboard)
         {
         }
+        [HttpGet("export-robots-pivot")]
+        public async Task<IActionResult> ExportRobotsPivot(
+     [FromServices] ExcelExportService excelService,
+     int? year = null,
+     int? quarter = null)
+        {
+            try
+            {
+                var sql = @" 
+            SELECT
+                r.name as robot_name,
+                EXTRACT(MONTH FROM ra.datestatistic) as month_num,
+                EXTRACT(YEAR FROM ra.datestatistic) as year_num,
+                ra.data_analize
+            FROM robots_analitic ra
+            LEFT JOIN robots r ON r.id = ra.idrobots
+            WHERE ra.isactive = true";
 
+                var parameters = new List<NpgsqlParameter>();
+
+                if (year.HasValue)
+                {
+                    sql += " AND EXTRACT(YEAR FROM ra.datestatistic) = @yr";
+                    parameters.Add(new NpgsqlParameter("yr", year.Value));
+                }
+
+                if (quarter.HasValue)
+                {
+                    int startMonth = (quarter.Value - 1) * 3 + 1;
+                    int endMonth = startMonth + 2;
+                    sql += " AND EXTRACT(MONTH FROM ra.datestatistic) BETWEEN @sm AND @em";
+                    parameters.Add(new NpgsqlParameter("sm", startMonth));
+                    parameters.Add(new NpgsqlParameter("em", endMonth));
+                }
+
+                sql += " ORDER BY r.name, year_num, month_num";
+
+                await using var conn = _dashboard.Database.GetDbConnection();
+                await conn.OpenAsync();
+
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = sql;
+                cmd.Parameters.AddRange(parameters.ToArray());
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+
+                var monthNames = new[] { "", "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+                                  "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь" };
+
+                // data[robotName][monthLabel][blockName][detailName] = value
+                var robotData = new Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, int>>>>();
+                var sumData = new Dictionary<string, Dictionary<string, Dictionary<string, int>>>(); // sums
+                var allMonthsSet = new HashSet<string>();
+                var allBlocksSet = new HashSet<string>();
+
+                while (await reader.ReadAsync())
+                {
+                    var robotName = reader.GetString(0);
+                    var monthNum = reader.GetInt32(1);
+                    var yearNum = reader.GetInt32(2);
+                    var jsonData = reader.GetString(3);
+
+                    var monthLabel = $"{monthNames[monthNum]} {yearNum}";
+                    allMonthsSet.Add(monthLabel);
+
+                    var blocks = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonData);
+
+                    if (!robotData.ContainsKey(robotName))
+                        robotData[robotName] = new Dictionary<string, Dictionary<string, Dictionary<string, int>>>();
+
+                    if (!robotData[robotName].ContainsKey(monthLabel))
+                        robotData[robotName][monthLabel] = new Dictionary<string, Dictionary<string, int>>();
+
+                    if (!sumData.ContainsKey(robotName))
+                        sumData[robotName] = new Dictionary<string, Dictionary<string, int>>();
+                    if (!sumData[robotName].ContainsKey(monthLabel))
+                        sumData[robotName][monthLabel] = new Dictionary<string, int>();
+
+                    foreach (var kvpBlock in blocks)
+                    {
+                        var blockName = kvpBlock.Key;
+                        allBlocksSet.Add(blockName);
+
+                        var blockValue = kvpBlock.Value;
+
+                        // Сумма
+                        int blockSum = 0;
+                        if (blockValue.TryGetProperty("сумма", out var sumEl))
+                            blockSum = sumEl.GetInt32();
+
+                        sumData[robotName][monthLabel][blockName] = blockSum;
+
+                        // Детали
+                        JsonElement detailsEl;
+                        bool hasDetails = blockValue.TryGetProperty("детали", out detailsEl) ||
+                                          blockValue.TryGetProperty("Details", out detailsEl);
+
+                        if (hasDetails)
+                        {
+                            if (!robotData[robotName][monthLabel].ContainsKey(blockName))
+                                robotData[robotName][monthLabel][blockName] = new Dictionary<string, int>();
+
+                            foreach (var detail in detailsEl.EnumerateObject())
+                            {
+                                robotData[robotName][monthLabel][blockName][detail.Name] = detail.Value.GetInt32();
+                            }
+                        }
+                    }
+                }
+
+                var sortedMonths = allMonthsSet.OrderBy(m => m).ToList();
+
+                // Excel
+                using var workbook = new XLWorkbook();
+                var sheet = workbook.Worksheets.Add("Сводка");
+
+                int row = 1;
+                int col;
+
+                sheet.Cell(row, 1).Value = "Роботы";
+                sheet.Cell(row, 1).Style.Font.Bold = true;
+                row++;
+
+                // Месяцы
+                col = 2;
+                foreach (var m in sortedMonths)
+                {
+                    sheet.Cell(row, col).Value = m;
+                    sheet.Cell(row, col).Style.Font.Bold = true;
+                    col++;
+                }
+                row++;
+
+                // Роботы
+                foreach (var robotKvp in robotData.OrderBy(r => r.Key))
+                {
+                    var rName = robotKvp.Key;
+
+                    sheet.Cell(row, 1).Value = rName;
+                    sheet.Cell(row, 1).Style.Font.Bold = true;
+                    row++;
+
+                    foreach (var blockName in allBlocksSet.OrderBy(b => b))
+                    {
+                        sheet.Cell(row, 1).Value = blockName;
+                        row++;
+
+                        // Все детали для этого блока
+                        var allDetails = new HashSet<string>();
+                        foreach (var monthKvp in robotKvp.Value)
+                        {
+                            if (monthKvp.Value.ContainsKey(blockName))
+                            {
+                                foreach (var d in monthKvp.Value[blockName].Keys)
+                                    allDetails.Add(d);
+                            }
+                        }
+
+                        foreach (var detail in allDetails.OrderBy(d => d))
+                        {
+                            sheet.Cell(row, 1).Value = "  " + detail;
+
+                            col = 2;
+                            foreach (var m in sortedMonths)
+                            {
+                                if (robotKvp.Value.ContainsKey(m) &&
+                                    robotKvp.Value[m].ContainsKey(blockName) &&
+                                    robotKvp.Value[m][blockName].ContainsKey(detail))
+                                {
+                                    sheet.Cell(row, col).Value = robotKvp.Value[m][blockName][detail];
+                                }
+                                col++;
+                            }
+                            row++;
+                        }
+
+                        // Сумма
+                        sheet.Cell(row, 1).Value = "  Сумма";
+                        sheet.Cell(row, 1).Style.Font.Bold = true;
+
+                        col = 2;
+                        foreach (var m in sortedMonths)
+                        {
+                            if (sumData.ContainsKey(rName) &&
+                                sumData[rName].ContainsKey(m) &&
+                                sumData[rName][m].ContainsKey(blockName))
+                            {
+                                sheet.Cell(row, col).Value = sumData[rName][m][blockName];
+                            }
+                            col++;
+                        }
+                        row++;
+                        row++;
+                    }
+                    row++;
+                }
+
+                sheet.Column(1).Width = 50;
+                for (int i = 2; i <= col; i++)
+                    sheet.Column(i).Width = 15;
+
+                using var stream = new MemoryStream();
+                workbook.SaveAs(stream);
+
+                var base64 = Convert.ToBase64String(stream.ToArray());
+                var fileName = $"robots_pivot_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+
+                return Ok(new { base64, fileName });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new { error = ex.Message, stackTrace = ex.StackTrace?.Substring(0, 500) });
+            }
+        }
         [HttpGet]
         public async Task<IActionResult> Get(
             [FromQuery] int? year,

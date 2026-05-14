@@ -2,7 +2,9 @@
 @inject IDialogService DialogService
 @inject Services.ApiService api
 @inject NavigationManager Navigation
-
+@inject HttpClient httpClient
+@inject IJSRuntime JSRuntime
+@inject ISnackbar Snackbar
 <PageTitle>@Departs.Robots</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large">
@@ -19,6 +21,13 @@
                              MinCharacters="0"
                              CoerceValue="false"
                              ResetValueOnEmptyText="true" />
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Info"
+                       StartIcon="@Icons.Material.Filled.FileDownload"
+                       OnClick="ExportRobots"
+                       Class="my-1">
+                Excel
+            </MudButton>
         </MudItem>
         <MudItem md="6" sm="6" Class="d-flex justify-sm-end justify-center pr-sm-4">
             <MudButton Href="/AddRobot" StartIcon="@Icons.Material.Filled.Add">Добавить робота</MudButton>
@@ -54,7 +63,41 @@
     private List<UniversalChartResponseV3> charts = new();
     private int? _idRobot;
     private bool _isLoading;
+    private async Task ExportRobots()
+    {
+        try
+        {
+            var query = new List<string>();
+            if (_year.HasValue) query.Add($"year={_year}");
+            if (_quarter.HasValue) query.Add($"quarter={_quarter}");
 
+            var url = "api/universal-chart-v3/export-robots-pivot";
+            if (query.Any()) url += "?" + string.Join("&", query);
+
+            var result = await api.GetAsync<ExportResult>(url);
+        
+            if (result != null && !string.IsNullOrEmpty(result.Base64))
+            {
+                await JSRuntime.InvokeVoidAsync("downloadFile",
+                    result.FileName, result.Base64,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                Snackbar.Add("Сводная таблица скачана", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Нет данных", Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
+        }
+    }
+    public class ExportResult
+    {
+        public string Base64 { get; set; } = "";
+        public string FileName { get; set; } = "";
+    }
     private void EditRobot(int robotId)
     {
         Navigation.NavigateTo($"/EditRobot/{robotId}");

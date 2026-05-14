@@ -3,6 +3,8 @@
 @inject IDialogService DialogService
 @inject Services.ApiService api
 @using MudBlazor
+@inject HttpClient httpClient        
+@inject IJSRuntime JSRuntime   
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
@@ -20,6 +22,13 @@
                        Class="my-1">
                 Новая задача
             </MudButton>
+            <MudButton Variant="Variant.Outlined"
+               Color="Color.Info"
+               StartIcon="@Icons.Material.Filled.FileDownload"
+               OnClick="ExportToExcel"
+               Class="my-1">
+        Excel
+    </MudButton>
         </MudItem>
 
         <MudItem sm="3" xs="6">
@@ -336,6 +345,45 @@
 
     private DialogOptions _dialogOptions = new() { FullWidth = true, CloseButton = true };
     private bool _showCustomArticleSingle = false;
+
+
+private async Task ExportToExcel()
+{
+    try
+    {
+        var query = new List<string>();
+        if (_year.HasValue) query.Add($"year={_year}");
+        if (_month.HasValue) query.Add($"month={_month}");
+        if (_quarter.HasValue) query.Add($"quarter={_quarter}");
+
+        var url = "api/export-analitic";
+        if (query.Any())
+            url += "?" + string.Join("&", query);
+
+        var result = await api.GetAsync<ExportResult>(url);
+        
+        if (result != null && !string.IsNullOrEmpty(result.Base64))
+        {
+            await JSRuntime.InvokeVoidAsync("downloadFile", 
+                result.FileName, 
+                result.Base64, 
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            
+            Snackbar.Add("Файл скачан", Severity.Success);
+        }
+    }
+    catch (Exception ex)
+    {
+        Snackbar.Add($"Ошибка экспорта: {ex.Message}", Severity.Error);
+    }
+}
+
+public class ExportResult
+{
+    public string Base64 { get; set; } = "";
+    public string FileName { get; set; } = "";
+}
+
      private void OnSourceSelected(int value)
     {
         if (value == -1)
