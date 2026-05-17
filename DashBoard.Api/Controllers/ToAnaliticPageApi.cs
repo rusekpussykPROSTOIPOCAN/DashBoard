@@ -16,7 +16,7 @@ namespace DashBoard.Api.Controllers
         [HttpGet("export-analitic")]
         public async Task<IActionResult> ExportAnalitic(
      [FromServices] ExcelExportService excelService,
-     int? year = null, int? month = null, int? quarter = null)
+     int? year = null, int? month = null, int? quarter = null, DateTime? dateFrom = null, DateTime? dateTo = null)
         {
             try
             {
@@ -26,8 +26,14 @@ namespace DashBoard.Api.Controllers
                         .ThenInclude(v => v.id_articleNavigation)
                     .Where(wp => wp.created_at.HasValue)
                     .AsQueryable();
-
-                if (year.HasValue)
+                if (dateFrom.HasValue && dateTo.HasValue)
+                {
+                    
+                    query = query.Where(o => o.created_at.HasValue && o.created_at.Value >= dateFrom.Value && o.created_at.Value <= dateTo.Value);
+                }
+                else
+                {
+                    if (year.HasValue)
                     query = query.Where(wp => wp.created_at.Value.Year == year.Value);
                 if (month.HasValue)
                     query = query.Where(wp => wp.created_at.Value.Month == month.Value);
@@ -37,6 +43,8 @@ namespace DashBoard.Api.Controllers
                     var endMonth = startMonth + 2;
                     query = query.Where(wp => wp.created_at.Value.Month >= startMonth &&
                                              wp.created_at.Value.Month <= endMonth);
+                }
+
                 }
 
                 var workProgresses = await query.ToListAsync();

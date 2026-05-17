@@ -1,10 +1,10 @@
 ﻿@page "/overflight/edit"
 @inject Services.ApiService api
 @inject ISnackbar Snackbar
-
+@inject IJSRuntime JSRuntime
 <PageTitle>Редактирование данных облёта</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge">
     <MudItem Class="my-5">
         <MudText Typo="Typo.h4" Class="mb-5">Редактирование данных</MudText>
         
@@ -34,13 +34,25 @@
                          Dense="true"
                          EditTrigger="DataGridEditTrigger.Manual"
                          ReadOnly="false">
-                <ToolBarContent>
-                    <MudText Typo="Typo.h6">Заявки</MudText>
-                    <MudSpacer />
-                    <MudButton OnClick="AddNewBlock2" Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add">
-                        Добавить
-                    </MudButton>
-                </ToolBarContent>
+<ToolBarContent>
+    <MudText Typo="Typo.h6">Заявки</MudText>
+    <MudSpacer />
+    
+  <MudFileUpload T="IBrowserFile" FilesChanged="HandleBlock2Upload" Accept=".xlsx,.xls">
+    <CustomContent>
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Info"
+                   OnClick="@context.OpenFilePickerAsync"
+                   StartIcon="@Icons.Material.Filled.UploadFile">
+            Загрузить таблицу
+        </MudButton>
+    </CustomContent>
+</MudFileUpload>
+    
+    <MudButton OnClick="AddNewBlock2" Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add">
+        Добавить
+    </MudButton>
+</ToolBarContent>
                 <Columns>
                     <PropertyColumn Property="x => x.Id" Title="ID" Editable="false" />
                     <TemplateColumn Title="Район">
@@ -146,6 +158,17 @@
     <ToolBarContent>
         <MudText Typo="Typo.h6">Нарушения</MudText>
         <MudSpacer />
+           
+  <MudFileUpload T="IBrowserFile" FilesChanged="HandleBlock1Upload" Accept=".xlsx,.xls">
+    <CustomContent>
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Info"
+                   OnClick="@context.OpenFilePickerAsync"
+                   StartIcon="@Icons.Material.Filled.UploadFile">
+            Загрузить таблицу
+        </MudButton>
+    </CustomContent>
+</MudFileUpload>
         <MudButton OnClick="AddNewBlock1" Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add">
             Добавить
         </MudButton>
@@ -244,7 +267,69 @@
 
     private bool _showCustomViolation = false;
 private OverflyBlock1Item? _currentEditingBlock1Item;
+    private InputFile? _fileInput;
+private ElementReference _fileInputElement;
+private async Task OpenFilePicker()
+{
+    
+    await JSRuntime.InvokeVoidAsync("clickFileInput", _fileInput!.Element);
+}
 
+
+private async Task HandleBlock2Upload(IBrowserFile file)
+{
+    try
+    {
+        using var content = new MultipartFormDataContent();
+        var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+        var fileContent = new StreamContent(stream);
+        content.Add(fileContent, "file", file.Name);
+
+        var response = await api.PostFormAsync<ImportResult>("api/overfly/upload-block2", content);
+        
+        if (response != null)
+        {
+            Snackbar.Add(response.Message, Severity.Success);
+        }
+
+        await LoadBlock2();
+    }
+    catch (Exception ex)
+    {
+        Snackbar.Add($"Ошибка загрузки: {ex.Message}", Severity.Error);
+    }
+}
+
+
+private async Task HandleBlock1Upload(IBrowserFile file)
+{
+    try
+    {
+        using var content = new MultipartFormDataContent();
+        var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+        var fileContent = new StreamContent(stream);
+        content.Add(fileContent, "file", file.Name);
+
+        var response = await api.PostFormAsync<ImportResult>("api/overfly/upload-block1", content);
+        
+        if (response != null)
+        {
+            Snackbar.Add(response.Message, Severity.Success);
+        }
+
+        await LoadBlock1();
+    }
+    catch (Exception ex)
+    {
+        Snackbar.Add($"Ошибка загрузки: {ex.Message}", Severity.Error);
+    }
+}
+
+public class ImportResult
+{
+    public string Message { get; set; } = "";
+    public List<string>? Errors { get; set; }
+}
     private void SwitchTable(string table)
     {
         _activeTable = table;
@@ -537,7 +622,7 @@ private void CanceledEditingBlock1(OverflyBlock1Item item)
                 _showCustomViolation = false;
                 _currentEditingBlock1Item = null;
                 
-                // Перезагружаем ВСЕ данные
+                
                 await LoadBlock1();
                 StateHasChanged();
             }
@@ -549,7 +634,7 @@ private void CanceledEditingBlock1(OverflyBlock1Item item)
             _showCustomViolation = false;
             _currentEditingBlock1Item = null;
             
-            // Перезагружаем данные
+           
             await LoadBlock1();
             StateHasChanged();
         }

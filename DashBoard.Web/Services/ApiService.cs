@@ -65,6 +65,13 @@ namespace DashBoard.Web.Services
                 throw;
             }
         }
+
+        public async Task<T?> PostFormAsync<T>(string endpoint, MultipartFormDataContent content)
+        {
+            var response = await _httpClient.PostAsync(endpoint, content);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<T>();
+        }
         public async Task<string> GetJsonAnalitic(
             DateTime? dateFrom = null,
             DateTime? dateTo = null,
@@ -80,7 +87,7 @@ namespace DashBoard.Web.Services
             if (month.HasValue) query.Add($"month={month}");
             if (quarter.HasValue) query.Add($"quarter={quarter}");
 
-            // Вот здесь исправление: api/getTableAnalitic
+            
             var url = "api/getTableAnalitic" + (query.Any() ? "?" + string.Join("&", query) : "");
 
             return await _httpClient.GetStringAsync(url);

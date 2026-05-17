@@ -19,14 +19,15 @@ namespace DashBoard.Api.Controllers
         {
         }
         [HttpGet("export-robots-pivot")]
-        public async Task<IActionResult> ExportRobotsPivot(
-     [FromServices] ExcelExportService excelService,
+        public async Task<IActionResult> ExportRobotsPivot([FromServices] ExcelExportService excelService, DateTime? dateFrom=null,
+      DateTime? dateTo = null,
+     
      int? year = null,
      int? quarter = null)
         {
             try
             {
-                // Сначала получаем ВСЕХ роботов
+                
                 var allRobots = await _dashboard.robots
                     .Where(r => r.robots_analitics.Any(ra => ra.isactive == true))
                     .Select(r => r.name)
@@ -43,23 +44,31 @@ namespace DashBoard.Api.Controllers
             WHERE ra.isactive = true";
 
                 var parameters = new List<NpgsqlParameter>();
-
-                if (year.HasValue)
+                if (dateFrom.HasValue && dateTo.HasValue)
                 {
-                    sql += " AND EXTRACT(YEAR FROM ra.datestatistic) = @yr";
-                    parameters.Add(new NpgsqlParameter("yr", year.Value));
-                }
-                if (quarter.HasValue)
-                {
-                    int startMonth = (quarter.Value - 1) * 3 + 1;
-                    int endMonth = startMonth + 2;
-                    sql += " AND EXTRACT(MONTH FROM ra.datestatistic) BETWEEN @sm AND @em";
-                    parameters.Add(new NpgsqlParameter("sm", startMonth));
-                    parameters.Add(new NpgsqlParameter("em", endMonth));
+                    sql += " AND ra.datestatistic BETWEEN @dateFrom and @dateTo";
+                    parameters.Add(new NpgsqlParameter("dateFrom", DateOnly.FromDateTime(dateFrom.Value)));
+                    parameters.Add(new NpgsqlParameter("dateTo", DateOnly.FromDateTime(dateTo.Value)));
                 }
 
-                sql += " ORDER BY r.name, year_num, month_num";
+                else
+                {
+                    if (year.HasValue)
+                    {
+                        sql += " AND EXTRACT(YEAR FROM ra.datestatistic) = @yr";
+                        parameters.Add(new NpgsqlParameter("yr", year.Value));
+                    }
+                    if (quarter.HasValue)
+                    {
+                        int startMonth = (quarter.Value - 1) * 3 + 1;
+                        int endMonth = startMonth + 2;
+                        sql += " AND EXTRACT(MONTH FROM ra.datestatistic) BETWEEN @sm AND @em";
+                        parameters.Add(new NpgsqlParameter("sm", startMonth));
+                        parameters.Add(new NpgsqlParameter("em", endMonth));
+                    }
 
+                }
+                    sql += " ORDER BY r.name, year_num, month_num";
                 await using var conn = _dashboard.Database.GetDbConnection();
                 await conn.OpenAsync();
                 await using var cmd = conn.CreateCommand();
@@ -134,7 +143,7 @@ namespace DashBoard.Api.Controllers
 
                 var sortedMonths = allMonthsSet.OrderBy(m => m).ToList();
 
-                // Excel
+                
                 using var workbook = new XLWorkbook();
                 var sheet = workbook.Worksheets.Add("Сводка");
 
@@ -145,7 +154,7 @@ namespace DashBoard.Api.Controllers
                 sheet.Cell(row, 1).Style.Font.Bold = true;
                 row++;
 
-                // Заголовки месяцев
+               
                 sheet.Cell(row, 1).Value = "";
                 col = 2;
                 foreach (var m in sortedMonths)
@@ -156,7 +165,7 @@ namespace DashBoard.Api.Controllers
                 }
                 row++;
 
-                // Используем allRobots вместо robotData.Keys, чтобы сохранить порядок и не пропускать
+                
                 foreach (var rName in allRobots.OrderBy(r => r))
                 {
                     sheet.Cell(row, 1).Value = rName;
@@ -174,7 +183,7 @@ namespace DashBoard.Api.Controllers
                         sheet.Cell(row, 1).Value = blockName;
                         row++;
 
-                        // Собираем все детали
+                       
                         var allDetails = new HashSet<string>();
                         if (robotData.ContainsKey(rName))
                         {
@@ -206,7 +215,7 @@ namespace DashBoard.Api.Controllers
                             row++;
                         }
 
-                        // Сумма
+                       
                         sheet.Cell(row, 1).Value = "  Сумма";
                         sheet.Cell(row, 1).Style.Font.Bold = true;
 
@@ -249,11 +258,16 @@ namespace DashBoard.Api.Controllers
      [FromQuery] int? year,
      [FromQuery] int? month,
      [FromQuery] int? quarter,
-     [FromQuery] int? robotId)
+     [FromQuery] int? robotId,
+     [FromQuery] DateTime? dateFrom,
+     [FromQuery] DateTime? dateTo)
         {
             try
             {
-                var sql = @" 
+
+                var parameters = new List<NpgsqlParameter>();
+               
+                    var sql = @" 
             SELECT
                 r.id as robot_id,
                 r.name as robot_name,
@@ -282,9 +296,14 @@ namespace DashBoard.Api.Controllers
             ) AS detail ON true
             LEFT JOIN robots r ON r.id = ra.idrobots
             WHERE ra.isactive = true";
+                if (dateFrom.HasValue && dateTo.HasValue)
+                {
+                    sql += " AND ra.datestatistic BETWEEN @dateFrom and @dateTo";
+                    parameters.Add(new NpgsqlParameter("dateFrom", DateOnly.FromDateTime(dateFrom.Value)));
+                    parameters.Add(new NpgsqlParameter("dateTo", DateOnly.FromDateTime(dateTo.Value)));
+                }
 
-                var parameters = new List<NpgsqlParameter>();
-
+                else { 
                 if (year.HasValue)
                 {
                     sql += " AND EXTRACT(YEAR FROM ra.datestatistic) = @year";
@@ -299,6 +318,7 @@ namespace DashBoard.Api.Controllers
                 {
                     sql += " AND EXTRACT(QUARTER FROM ra.datestatistic) = @quarter";
                     parameters.Add(new NpgsqlParameter("quarter", quarter.Value));
+                }
                 }
                 if (robotId.HasValue)
                 {
@@ -315,7 +335,7 @@ namespace DashBoard.Api.Controllers
                 cmd.Parameters.AddRange(parameters.ToArray());
                 await using var reader = await cmd.ExecuteReaderAsync();
 
-                // Ключ: robotId_block - чтобы не смешивать роботов
+                
                 var map = new Dictionary<string, UniversalChartResponseV3>();
 
                 while (await reader.ReadAsync())
@@ -327,7 +347,7 @@ namespace DashBoard.Api.Controllers
                     var detailKey = reader.IsDBNull(4) ? null : reader.GetString(4);
                     var value = reader.IsDBNull(5) ? 0 : reader.GetInt32(5);
 
-                    // Уникальный ключ: робот + блок
+                   
                     var mapKey = $"{robotID}_{block}";
 
                     if (!map.TryGetValue(mapKey, out var chart))

@@ -15,12 +15,26 @@ namespace DashBoard.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetApplications(int? year, int? month, int? quarter)
+        public async Task<IActionResult> GetApplications(int? year, int? month, int? quarter,DateTime? dateFrom, DateTime? dateTo)
         {
             try
             {
-                var result = await _dashboard.Set<ApplicationDKN>()
-                    .FromSqlRaw(@"
+                if (dateFrom.HasValue && dateTo.HasValue)
+                {
+                    var result = await _dashboard.Set<ApplicationDKN>().FromSqlRaw(@"SELECT r.name AS ""Name"",  SUM(count_application)::int AS ""CountApplications"" FROM public.robots_analitic ra 
+                        LEFT JOIN robots r ON r.id = ra.idrobots 
+                        WHERE (ra.datestatistic BETWEEN @dateFrom and @dateTo) GROUP BY r.name 
+                        ORDER BY r.name
+", new NpgsqlParameter("dateFrom", DateOnly.FromDateTime(dateFrom.Value)),
+                            new NpgsqlParameter("dateTo", DateOnly.FromDateTime(dateTo.Value))).ToListAsync();
+
+                    return Ok(result);
+
+                }
+                else
+                {
+                    var result = await _dashboard.Set<ApplicationDKN>()
+                        .FromSqlRaw(@"
                         SELECT r.name AS ""Name"", 
                                SUM(count_application)::int AS ""CountApplications""
                         FROM public.robots_analitic ra 
@@ -32,12 +46,13 @@ namespace DashBoard.Api.Controllers
                             AND EXTRACT(DAY FROM ra.datestatistic) <> 31
                         GROUP BY r.name 
                         ORDER BY r.name",
-                        new NpgsqlParameter("year", year ?? (object)DBNull.Value),
-                        new NpgsqlParameter("month", month ?? (object)DBNull.Value),
-                        new NpgsqlParameter("quarter", quarter ?? (object)DBNull.Value))
-                    .ToListAsync();
-
+                            new NpgsqlParameter("year", year ?? (object)DBNull.Value),
+                            new NpgsqlParameter("month", month ?? (object)DBNull.Value),
+                            new NpgsqlParameter("quarter", quarter ?? (object)DBNull.Value))
+                        .ToListAsync();
                 return Ok(result);
+                  
+                }
             }
             catch (Exception ex)
             {

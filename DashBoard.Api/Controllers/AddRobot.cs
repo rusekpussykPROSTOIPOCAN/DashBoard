@@ -31,7 +31,7 @@ namespace DashBoard.Api.Controllers
                     short_name = request.Robot.ShortName
                 };
 
-                // Безопасное добавление робота
+               
                 await SafeAddAsync(_dashboard.robots, robot);
 
                 foreach (var item in request.Periods)
@@ -114,15 +114,13 @@ namespace DashBoard.Api.Controllers
                         {
                             var chartData = block.Value;
 
-                            // Безопасное получение типа
-                            ChartTypeRobot chartType = ChartTypeRobot.Bar; // По умолчанию
+                            ChartTypeRobot chartType = ChartTypeRobot.Bar; 
                             if (chartData.TryGetProperty("type", out var typeEl))
                             {
                                 var typeStr = typeEl.GetString() ?? "Bar";
                                 Enum.TryParse(typeStr, true, out chartType);
                             }
 
-                            // Безопасное получение суммы
                             double sum = 0;
                             if (chartData.TryGetProperty("сумма", out var sumEl))
                                 sum = sumEl.GetDouble();
@@ -135,7 +133,7 @@ namespace DashBoard.Api.Controllers
                                 Details = new Dictionary<string, double>()
                             };
 
-                            // Безопасное получение деталей
+                        
                             if (chartData.TryGetProperty("детали", out var detailsEl))
                             {
                                 foreach (var detail in detailsEl.EnumerateObject())
@@ -155,7 +153,7 @@ namespace DashBoard.Api.Controllers
                         }
                         catch
                         {
-                            // Пропускаем битые блоки
+                           
                             continue;
                         }
                     }
@@ -196,7 +194,7 @@ namespace DashBoard.Api.Controllers
                 robot.name = request.Robot.Name;
                 robot.short_name = request.Robot.ShortName;
 
-                // Удаляем старые аналитики
+               
                 var oldAnalytics = await _dashboard.robots_analitics
                     .Where(a => a.idrobots == id)
                     .ToListAsync();
@@ -204,7 +202,7 @@ namespace DashBoard.Api.Controllers
                 _dashboard.robots_analitics.RemoveRange(oldAnalytics);
                 await _dashboard.SaveChangesAsync();
 
-                // Добавляем новые аналитики
+                
                 foreach (var period in request.Periods)
                 {
                     if (period.Month == null) continue;
@@ -249,7 +247,7 @@ namespace DashBoard.Api.Controllers
             }
         }
 
-        // Вспомогательный метод для безопасного добавления
+      
         private async Task SafeAddAsync<T>(DbSet<T> dbSet, T entity) where T : class
         {
             try
@@ -259,10 +257,9 @@ namespace DashBoard.Api.Controllers
             }
             catch (DbUpdateException)
             {
-                // Очищаем отслеживание неудачной записи
+            
                 _dashboard.Entry(entity).State = EntityState.Detached;
 
-                // Пробуем ещё раз
                 dbSet.Add(entity);
                 await _dashboard.SaveChangesAsync();
             }

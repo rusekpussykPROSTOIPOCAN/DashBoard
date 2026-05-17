@@ -4,12 +4,26 @@
 @inject IJSRuntime JSRuntime
 
 <PageTitle>@Departs.overflights</PageTitle>
+<MudContainer MaxWidth="MaxWidth.Large">
+
 <MudGrid>
     <MudItem xs="6">
-        <DialogPer OnChange="OnPeriodChanged" />
+        @if (_useDateRange)
+        {
+            <MudDateRangePicker Label="Выберите период"
+                                DateFormat="dd.MM.yyyy"
+                                Clearable="true"
+                                DateRangeChanged="OnDateRangeChanged" />
+            <MudButton Size="Size.Small" OnClick="SwitchFilter">Период (год/месяц/квартал)</MudButton>
+        }
+        else
+        {
+            <DialogPer OnChange="OnPeriodChanged" />
+            <MudButton Size="Size.Small" OnClick="SwitchFilter">Календарь</MudButton>
+        }
     </MudItem>
     <MudItem Class="d-flex justify-sm-end justify-center pr-sm-4 gap-2" xs="6">
-        <!-- Кнопка экспорта с выбором -->
+        
         <MudMenu Label="Excel"
                  Icon="@Icons.Material.Filled.FileDownload"
                  Variant="Variant.Outlined"
@@ -47,8 +61,10 @@
         </MudChart>
     </MudItem>
 </MudGrid>
+</MudContainer>
 
 @code {
+    private DateRange? _dateRange;
     private OverflyDTO? _data;
     private List<ChartSeries<double>> _statusSeries = new();
     private string[] _statusLabels = Array.Empty<string>();
@@ -58,10 +74,101 @@
     private OverflyDTO? _block1Data;
     private List<ChartSeries<double>> _violationDateSeries = new();
     private string[] _violationDateLabels = Array.Empty<string>();
-    
+
     private int? _year;
     private int? _quarter;
     private int? _month;
+    private bool _useDateRange = true;
+
+    private void SwitchFilter()
+    {
+        _useDateRange = !_useDateRange;
+        _dateRange = null;
+        _year = null;
+        _month = null;
+        _quarter = null;
+        StateHasChanged();
+    }
+
+    private async Task OnDateRangeChanged(DateRange? range)
+    {
+        _dateRange = range;
+        await LoadData();
+    }
+
+    private async Task OnPeriodChanged(DialogPer.Periods periods)
+    {
+        _year = periods.Year;
+        _month = periods.Month;
+        _quarter = periods.Quarter;
+        await LoadData();
+    }
+
+    private List<string> GetQueryParams()
+    {
+        var query = new List<string>();
+
+        if (_useDateRange && _dateRange?.Start.HasValue == true && _dateRange?.End.HasValue == true)
+        {
+            query.Add($"dateFrom={_dateRange.Start.Value:yyyy-MM-dd}");
+            query.Add($"dateTo={_dateRange.End.Value:yyyy-MM-dd}");
+        }
+        else
+        {
+            if (_year.HasValue) query.Add($"year={_year}");
+            if (_quarter.HasValue) query.Add($"quarter={_quarter}");
+            if (_month.HasValue) query.Add($"month={_month}");
+        }
+
+        return query;
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var query = GetQueryParams();
+            var queryString = query.Any() ? "?" + string.Join("&", query) : "";
+
+            var task1 = api.GetAsync<OverflyDTO>($"api/overfly/get-overfly{queryString}");
+            var task2 = api.GetAsync<OverflyDTO>($"api/overfly/block-1{queryString}");
+            
+            await Task.WhenAll(task1, task2);
+            
+            _data = task1.Result;
+            _block1Data = task2.Result;
+
+            if (_data != null)
+            {
+                _statusSeries = new List<ChartSeries<double>>
+                {
+                    new() { Name = "Количество", Data = _data.overflyStatusCounts.Select(s => (double)s.Count).ToArray() }
+                };
+                _statusLabels = _data.overflyStatusCounts.Select(s => s.StatusName).ToArray();
+
+                _districtSeries = new List<ChartSeries<double>>
+                {
+                    new() { Name = "Количество", Data = _data.overflyByDistricts.Select(d => (double)d.Count).ToArray() }
+                };
+                _districtLabels = _data.overflyByDistricts.Select(d => d.DistrictName).ToArray();
+            }
+
+            if (_block1Data != null)
+            {
+                _violationDateSeries = new List<ChartSeries<double>>
+                {
+                    new() { Name = "Количество", Data = _block1Data.overflyStatusCounts.Select(d => (double)d.Count).ToArray() }
+                };
+                _violationDateLabels = _block1Data.overflyStatusCounts.Select(s => s.StatusName).ToArray();
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
 
     private async Task ExportOverfly(string table)
     {
@@ -71,13 +178,8 @@
                 ? "api/overfly/export-overfly"
                 : "api/overfly/export-overfly-block1";
 
-            var query = new List<string>();
-            if (_year.HasValue) query.Add($"year={_year}");
-            if (_month.HasValue) query.Add($"month={_month}");
-            if (_quarter.HasValue) query.Add($"quarter={_quarter}");
-            
-            if (query.Any())
-                url += "?" + string.Join("&", query);
+            var query = GetQueryParams();
+            if (query.Any()) url += "?" + string.Join("&", query);
 
             var result = await api.GetAsync<ExportResult>(url);
         
@@ -99,77 +201,6 @@
     {
         public string Base64 { get; set; } = "";
         public string FileName { get; set; } = "";
-    }
-
-    private async Task OnPeriodChanged(DialogPer.Periods periods)
-    {
-        _year = periods.Year;
-        _month = periods.Month;
-        _quarter = periods.Quarter;
-        await LoadData();
-    }
-
-    private async Task LoadData()
-    {
-        try
-        {
-            var query = new List<string>();
-            if (_year.HasValue) query.Add($"year={_year}");
-            if (_quarter.HasValue) query.Add($"quarter={_quarter}");
-            if (_month.HasValue) query.Add($"month={_month}");
-            
-            var queryString = query.Any() ? "?" + string.Join("&", query) : "";
-
-            var task1 = api.GetAsync<OverflyDTO>($"api/overfly/get-overfly{queryString}");
-            var task2 = api.GetAsync<OverflyDTO>($"api/overfly/block-1{queryString}");
-            
-            await Task.WhenAll(task1, task2);
-            
-            _data = task1.Result;
-            _block1Data = task2.Result;
-
-            if (_data != null)
-            {
-                _statusSeries = new List<ChartSeries<double>>
-                {
-                    new ChartSeries<double>
-                    {
-                        Name = "Количество",
-                        Data = _data.overflyStatusCounts.Select(s => (double)s.Count).ToArray()
-                    }
-                };
-                _statusLabels = _data.overflyStatusCounts.Select(s => s.StatusName).ToArray();
-
-                _districtSeries = new List<ChartSeries<double>>
-                {
-                    new ChartSeries<double>
-                    {
-                        Name = "Количество",
-                        Data = _data.overflyByDistricts.Select(d => (double)d.Count).ToArray()
-                    }
-                };
-                _districtLabels = _data.overflyByDistricts.Select(d => d.DistrictName).ToArray();
-            }
-
-            if (_block1Data != null)
-            {
-                _violationDateSeries = new List<ChartSeries<double>>
-                {
-                    new ChartSeries<double>
-                    {
-                        Name = "Количество",
-                        Data = _block1Data.overflyStatusCounts.Select(d => (double)d.Count).ToArray()
-                    }
-                };
-                _violationDateLabels = _block1Data.overflyStatusCounts.Select(s => s.StatusName).ToArray();
-            }
-
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
     }
 
     protected override async Task OnInitializedAsync()

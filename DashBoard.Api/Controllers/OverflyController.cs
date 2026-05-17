@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
 using DashBoard.Api.Services;
+using DashBoard.Api.Service;
 
 namespace DashBoard.Api.Controllers
 {
@@ -16,9 +17,182 @@ namespace DashBoard.Api.Controllers
         {
         }
 
+        [HttpPost("upload-block2")]
+        public async Task<IActionResult> UploadBlock2(
+    IFormFile file,
+    [FromServices] ExcelInputService importService)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("Файл не выбран");
+
+            try
+            {
+                using var stream = file.OpenReadStream();
+                var rows = importService.ParseExcel(stream);
+
+                var imported = 0;
+                var errors = new List<string>();
+
+                foreach (var row in rows)
+                {
+                    try
+                    {
+                        var item = new overfly_block2
+                        {
+                            square = ParseDouble(row.GetValueOrDefault("Площадь", "0")),
+                            date_get_materials = ParseDate(row.GetValueOrDefault("Дата", ""))
+                        };
+
+                        
+                        var districtName = row.GetValueOrDefault("Район", "");
+                        if (!string.IsNullOrWhiteSpace(districtName))
+                        {
+                            var district = await _dashboard.districts
+                                .FirstOrDefaultAsync(d => d.name.ToLower() == districtName.ToLower());
+                            if (district != null)
+                                item.id_district = district.id;
+                        }
+
+                        var statusName = row.GetValueOrDefault("Статус", "");
+                        if (!string.IsNullOrWhiteSpace(statusName))
+                        {
+                            var status = await _dashboard.statusapplications
+                                .FirstOrDefaultAsync(s => s.name.ToLower() == statusName.ToLower());
+                            if (status != null)
+                                item.id_status = status.id;
+                        }
+
+                      
+                        var addressName = row.GetValueOrDefault("Адрес", "");
+                        if (!string.IsNullOrWhiteSpace(addressName))
+                        {
+                            var address = await _dashboard.addresses
+                                .FirstOrDefaultAsync(a => a.address1.ToLower() == addressName.ToLower());
+                            if (address == null)
+                            {
+                                address = new address { address1 = addressName };
+                                _dashboard.addresses.Add(address);
+                                await _dashboard.SaveChangesAsync();
+                            }
+                            item.id_address = address.id;
+                        }
+
+                        _dashboard.overfly_block2s.Add(item);
+                        imported++;
+                    }
+                    catch (Exception ex)
+                    {
+                        errors.Add($"Строка {imported + 1}: {ex.Message}");
+                    }
+                }
+
+                await _dashboard.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    message = $"Импортировано: {imported}",
+                    errors = errors.Any() ? errors : null
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Ошибка импорта: {ex.Message}");
+            }
+        }
+
+        [HttpPost("upload-block1")]
+        public async Task<IActionResult> UploadBlock1(
+            IFormFile file,
+            [FromServices] ExcelInputService importService)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("Файл не выбран");
+
+            try
+            {
+                using var stream = file.OpenReadStream();
+                var rows = importService.ParseExcel(stream);
+
+                var imported = 0;
+                var errors = new List<string>();
+
+                foreach (var row in rows)
+                {
+                    try
+                    {
+                        var item = new overfly_block1
+                        {
+                            quantitynewviolation = ParseInt(row.GetValueOrDefault("Количество", "0")),
+                            date_detection = ParseDate(row.GetValueOrDefault("Дата", ""))
+                        };
+
+                     
+                        var districtName = row.GetValueOrDefault("Район", "");
+                        if (!string.IsNullOrWhiteSpace(districtName))
+                        {
+                            var district = await _dashboard.districts
+                                .FirstOrDefaultAsync(d => d.name.ToLower() == districtName.ToLower());
+                            if (district != null) item.iddistric = district.id;
+                        }
+
+                      
+                        var violationName = row.GetValueOrDefault("Нарушение", "");
+                        if (!string.IsNullOrWhiteSpace(violationName))
+                        {
+                            var violation = await _dashboard.violations
+                                .FirstOrDefaultAsync(v => v.name.ToLower() == violationName.ToLower());
+                            if (violation == null)
+                            {
+                                violation = new violation { name = violationName };
+                                _dashboard.violations.Add(violation);
+                                await _dashboard.SaveChangesAsync();
+                            }
+                            item.idviolation = violation.id;
+                        }
+
+                        _dashboard.overfly_block1s.Add(item);
+                        imported++;
+                    }
+                    catch (Exception ex)
+                    {
+                        errors.Add($"Строка {imported + 1}: {ex.Message}");
+                    }
+                }
+
+                await _dashboard.SaveChangesAsync();
+
+                return Ok(new { message = $"Импортировано: {imported}", errors });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Ошибка: {ex.Message}");
+            }
+        }
+
+      
+        private static double ParseDouble(string value)
+        {
+            return double.TryParse(value?.Replace(",", "."), out var result) ? result : 0;
+        }
+
+        private static int ParseInt(string value)
+        {
+            return int.TryParse(value, out var result) ? result : 0;
+        }
+
+        private static DateOnly? ParseDate(string value)
+        {
+            if (DateTime.TryParse(value, out var date))
+                return DateOnly.FromDateTime(date);
+            return null;
+        }
+
+
+
+
         [HttpGet("export-overfly")]
         public async Task<IActionResult> ExportOverfly(
-    [FromServices] ExcelExportService excelService,
+    [FromServices] ExcelExportService excelService, DateTime? dateFrom = null, DateTime? dateTo = null,
     int? year = null, int? month = null, int? quarter = null)
         {
             try
@@ -28,8 +202,16 @@ namespace DashBoard.Api.Controllers
                     .Include(o => o.id_addressNavigation)
                     .Include(o => o.id_districtNavigation)
                     .AsQueryable();
+                if (dateFrom.HasValue && dateTo.HasValue)
+                {
+                    var from = DateOnly.FromDateTime(dateFrom.Value);
+                    var to = DateOnly.FromDateTime(dateTo.Value);
+                    query = query.Where(o => o.date_get_materials.HasValue && o.date_get_materials.Value >= from && o.date_get_materials.Value <= to);
+                }
+                else
+                {
 
-                if (year.HasValue)
+                    if (year.HasValue)
                     query = query.Where(o => o.date_get_materials.HasValue && o.date_get_materials.Value.Year == year.Value);
                 if (month.HasValue)
                     query = query.Where(o => o.date_get_materials.HasValue && o.date_get_materials.Value.Month == month.Value);
@@ -40,6 +222,7 @@ namespace DashBoard.Api.Controllers
                     query = query.Where(o => o.date_get_materials.HasValue &&
                                           o.date_get_materials.Value.Month >= startMonth &&
                                           o.date_get_materials.Value.Month <= endMonth);
+                }
                 }
 
                 var data = await query.OrderByDescending(o => o.id).ToListAsync();
@@ -72,7 +255,7 @@ namespace DashBoard.Api.Controllers
         }
         [HttpGet("export-overfly-block1")]
         public async Task<IActionResult> ExportOverflyBlock1(
-    [FromServices] ExcelExportService excelService,
+    [FromServices] ExcelExportService excelService, DateTime? dateFrom = null, DateTime? dateTo = null,
     int? year = null, int? month = null, int? quarter = null)
         {
             try
@@ -81,6 +264,14 @@ namespace DashBoard.Api.Controllers
                     .Include(o => o.iddistricNavigation)
                     .Include(o => o.idviolationNavigation)
                     .AsQueryable();
+                if (dateFrom.HasValue && dateTo.HasValue)
+                {
+                    var from = DateOnly.FromDateTime(dateFrom.Value);
+                    var to = DateOnly.FromDateTime(dateTo.Value);
+                    query = query.Where(o => o.date_detection.HasValue && o.date_detection.Value >= from && o.date_detection.Value <= to);
+                }
+                else
+                {
 
                 if (year.HasValue)
                     query = query.Where(x => x.date_detection.HasValue && x.date_detection.Value.Year == year.Value);
@@ -95,6 +286,7 @@ namespace DashBoard.Api.Controllers
                                           o.date_detection.Value.Month <= endMonth);
                 }
 
+                }
                 var data = await query.OrderByDescending(o => o.id).ToListAsync();
 
                 var rows = new List<Dictionary<string, object>>();
@@ -481,7 +673,7 @@ namespace DashBoard.Api.Controllers
         }
 
         [HttpGet("block-1")]
-        public async Task<IActionResult> GetBlock1(int? year = null, int? quarter = null, int? month = null)
+        public async Task<IActionResult> GetBlock1(int? year = null, int? quarter = null, int? month = null , DateTime? dateFrom = null, DateTime? dateTo = null)
         {
             try
             {
@@ -489,6 +681,14 @@ namespace DashBoard.Api.Controllers
                     .Include(o => o.iddistricNavigation)
                     .Include(o => o.idviolationNavigation)
                     .AsQueryable();
+                if (dateFrom.HasValue && dateTo.HasValue)
+                {
+                    var from = DateOnly.FromDateTime(dateFrom.Value);
+                    var to = DateOnly.FromDateTime(dateTo.Value);
+                    query = query.Where(o => o.date_detection.HasValue && o.date_detection.Value >= from && o.date_detection.Value <= to);
+                }
+                else
+                {
 
                 if (year.HasValue)
                     query = query.Where(x => x.date_detection.HasValue && x.date_detection.Value.Year == year.Value);
@@ -501,6 +701,7 @@ namespace DashBoard.Api.Controllers
                     query = query.Where(o => o.date_detection.HasValue &&
                                           o.date_detection.Value.Month >= startMonth &&
                                           o.date_detection.Value.Month <= endMonth);
+                }
                 }
 
                 var data = await query.ToListAsync();
@@ -558,7 +759,7 @@ namespace DashBoard.Api.Controllers
         }
 
         [HttpGet("get-overfly")]
-        public async Task<IActionResult> GetOverfly(int? year = null, int? quarter = null, int? month = null)
+        public async Task<IActionResult> GetOverfly(int? year = null, int? quarter = null, int? month = null, DateTime? dateFrom = null, DateTime? dateTo = null)
         {
             try
             {
@@ -566,6 +767,14 @@ namespace DashBoard.Api.Controllers
                     .Include(o => o.id_statusNavigation)
                     .Include(o => o.id_districtNavigation)
                     .AsQueryable();
+                if (dateFrom.HasValue && dateTo.HasValue)
+                {
+                    var from = DateOnly.FromDateTime(dateFrom.Value);
+                    var to = DateOnly.FromDateTime(dateTo.Value);
+                    query = query.Where(o => o.date_get_materials.HasValue && o.date_get_materials.Value >= from && o.date_get_materials.Value <= to);
+                }
+                else
+                {
 
                 if (year.HasValue)
                     query = query.Where(o => o.date_get_materials.HasValue && o.date_get_materials.Value.Year == year.Value);
@@ -579,6 +788,7 @@ namespace DashBoard.Api.Controllers
                 }
                 if (month.HasValue)
                     query = query.Where(x => x.date_get_materials.HasValue && x.date_get_materials.Value.Month == month.Value);
+                }
 
                 var data = await query.ToListAsync();
                 var totalCount = data.Count();

@@ -11,7 +11,19 @@
 <MudContainer Fixed="true" MaxWidth="MaxWidth.Large">
     <MudGrid>
         <MudItem sm="6" md="6">
+             @if (_useDateRange)
+        {
+            <MudDateRangePicker Label="Выберите период"
+                                DateFormat="dd.MM.yyyy"
+                                Clearable="true"
+                                DateRangeChanged="OnDateRangeChanged" />
+            <MudButton Size="Size.Small" OnClick="SwitchFilter">Период (год/месяц/квартал)</MudButton>
+        }
+        else
+        {
             <DialogPer OnChange="OnPeriodChanged" />
+            <MudButton Size="Size.Small" OnClick="SwitchFilter">Календарь</MudButton>
+        }
         </MudItem>
 
         <MudItem md="6" sm="6" Class="d-flex justify-sm-end justify-center pr-sm-4 gap-2">
@@ -87,8 +99,6 @@
         </MudItem>
     </MudGrid>
 </MudContainer>
-
-<!-- Диалог добавления новой задачи -->
 <MudDialog @bind-Visible="_addViolationDialogVisible"
            Title="Добавить нарушение к существующей задаче"
            MaxWidth="MaxWidth.Small"
@@ -108,7 +118,7 @@
                 }
             </MudSelect>
             
-            <!-- Статья с возможностью "Другое" -->
+            
             @if (_showCustomArticleSingle)
             {
                 <MudTextField @bind-Value="_newViolation.CustomArticleName"
@@ -177,7 +187,7 @@
            Options="_dialogOptions">
     <DialogContent>
         <MudStack Spacing="3">
-            <!-- Источник с возможностью "Другое" -->
+           
             @if (_showCustomSource)
             {
                 <MudTextField @bind-Value="_newTask.CustomSourceName"
@@ -242,7 +252,7 @@
                 <MudPaper Elevation="2" Class="pa-3 mb-2">
                     <MudGrid>
                         <MudItem xs="12" md="5">
-                            <!-- Статья с возможностью "Другое" -->
+                         
                             @if (_showCustomArticle.Contains(index))
                             {
                                 <MudTextField @bind-Value="_newTask.Violations[index].CustomArticleName"
@@ -320,6 +330,7 @@
 </MudDialog>
 
 @code {
+    private DateRange? _dateRange;
     private double[] ChartData => _data?.PerimeterBySource?.Select(x => (double)x.Sum).ToArray() ?? Array.Empty<double>();
     private string[] ChartLabels => _data?.PerimeterBySource?.Select(x => x.Source).ToArray() ?? Array.Empty<string>();
     private List<ViolationDto> Violations = new();
@@ -345,16 +356,46 @@
 
     private DialogOptions _dialogOptions = new() { FullWidth = true, CloseButton = true };
     private bool _showCustomArticleSingle = false;
+    private bool _useDateRange = true;
+    private void SwitchFilter()
+    {
+        _useDateRange = !_useDateRange;
+        _dateRange = null;
+        _year = null;
+        _month = null;
+        _quarter = null;
+        StateHasChanged();
+    }
 
-
-private async Task ExportToExcel()
-{
-    try
+    private async Task OnDateRangeChanged(DateRange? range)
+    {
+        _dateRange = range;
+        await LoadData();
+    }
+    private List<string> GetQueryParams()
     {
         var query = new List<string>();
-        if (_year.HasValue) query.Add($"year={_year}");
-        if (_month.HasValue) query.Add($"month={_month}");
-        if (_quarter.HasValue) query.Add($"quarter={_quarter}");
+
+        if (_useDateRange && _dateRange?.Start.HasValue == true && _dateRange?.End.HasValue == true)
+        {
+            query.Add($"dateFrom={_dateRange.Start.Value:yyyy-MM-dd}");
+            query.Add($"dateTo={_dateRange.End.Value:yyyy-MM-dd}");
+        }
+        else
+        {
+            if (_year.HasValue) query.Add($"year={_year}");
+            if (_quarter.HasValue) query.Add($"quarter={_quarter}");
+            if (_month.HasValue) query.Add($"month={_month}");
+        }
+
+        return query;
+    }
+    private async Task ExportToExcel()
+    {
+        try
+        {
+            var query = GetQueryParams();
+            
 
         var url = "api/export-analitic";
         if (query.Any())
@@ -493,25 +534,21 @@ public class ExportResult
     private async Task LoadData()
     {
         try
-        {
-            var query = new List<string>();
-            if (_year.HasValue) query.Add($"year={_year}");
-            if (_month.HasValue) query.Add($"month={_month}");
-            if (_quarter.HasValue) query.Add($"quarter={_quarter}");
+    {
+        var query = GetQueryParams(); 
+        var url = "api/getTableAnalitic";
+        if (query.Any())
+            url += "?" + string.Join("&", query);
 
-            var url = "api/getTableAnalitic";
-            if (query.Any())
-                url += "?" + string.Join("&", query);
-
-            var result = await api.GetAsync<AnaliticPageDTO>(url);
-            _data = result;
-            Violations = _data?.Violations ?? new List<ViolationDto>();
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Ошибка загрузки данных: {ex.Message}", Severity.Error);
-        }
+        var result = await api.GetAsync<AnaliticPageDTO>(url);
+        _data = result;
+        Violations = _data?.Violations ?? new List<ViolationDto>();
+        StateHasChanged();
+    }
+    catch (Exception ex)
+    {
+        Snackbar.Add($"Ошибка загрузки данных: {ex.Message}", Severity.Error);
+    }
     }
 
    

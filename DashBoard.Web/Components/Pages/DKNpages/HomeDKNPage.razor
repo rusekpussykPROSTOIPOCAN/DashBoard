@@ -10,7 +10,23 @@
       
     
         <MudItem class="ml-20" sm="3" xs="6">
-          <DialogPer OnChange="OnPeriodChanged"/>
+            <MudButton StartIcon="@Icons.Material.Filled.TableChart" IconColor="Color.Success">@ResForBodyPage.Table</MudButton>
+        </MudItem>
+        <MudItem sm="6" xs="12">
+            
+            @if (_useDateRange)
+            {
+                <MudDateRangePicker Label="Выберите период"
+                                    DateFormat="dd.MM.yyyy"
+                                    Clearable="true"
+                                    DateRangeChanged="OnDateRangeChanged" />
+                <MudButton Size="Size.Small" OnClick="SwitchFilter">Период (год/месяц/квартал)</MudButton>
+            }
+            else
+            {
+                <DialogPer OnChange="OnPeriodChanged" />
+                <MudButton Size="Size.Small" OnClick="SwitchFilter">Календарь</MudButton>
+            }
         </MudItem>
         <MudItem xs="12" >
            <MudText Align="Align.Center" Typo="Typo.h5">@ResForBodyPage.FPTitle</MudText>
@@ -63,60 +79,90 @@
    
 </MudContainer>
 @code {
+    private DateRange? dateRange;
+
+
+    private List<StatusSquare>? data = new();
+    private string[] LabelsSqr => data.Select(x => x.Name).ToArray();
+    private double[] DataSqr => data.Select(x => Math.Round(x.Squer, 1)).ToArray();
+    private double[] SumSqr => data.Where(o => o.Name == "ИСПОЛНЕНА" || o.Name == "ДУБЛЬ").Select(x => Math.Round(x.Squer, 1)).ToArray();
+
+    private int? _year;
+    private int? _month;
+    private int? _quarter;
+    private bool _useDateRange = true;
+    private List<ApplicationDKN> apps = new();
+    private string[] LabelApps => apps.Select(x => x.Name).ToArray();
+    private int[] DataApps => apps
+     .Select(x => (int)(x.CountApplications ?? 0))
+     .ToArray();
+
+
+    private void SwitchFilter()
+    {
+        _useDateRange = !_useDateRange;
+        _dateRange = null;
+        _year = null;
+        _month = null;
+        _quarter = null;
+        StateHasChanged();
+    }
+    private async Task OnPeriodChanged(DialogPer.Periods periods)
+    {
+        _year = periods.Year;
+        _month = periods.Month;
+        _quarter = periods.Quarter;
+        await LoadData(null, null);
+    }
+    private async Task OnDateRangeChanged(DateRange? range)
+    {
+        _dateRange = range;
+        if(range?.Start.HasValue == true && range?.End.HasValue == true)
+        {
+            await LoadData(_dateRange.Start.Value, _dateRange.End.Value);
+        }
+        else if(range == null)
+        {
+            await LoadData(null, null);
+        }
+    }
+    private async Task LoadData(DateTime? dateFrom, DateTime? dateTo)
+    {
+        var query = new List<string>();
+        if(_dateRange?.Start.HasValue == true && _dateRange?.End.HasValue == true)
+        {
+            query.Add($"dateFrom={_dateRange.Start.Value:yyyy-MM-dd}");
+            query.Add($"dateTo={_dateRange.End.Value:yyyy-MM-dd}");
+        }
+        else
+        {
+        if (_year.HasValue) query.Add($"year={_year}");
+        if (_month.HasValue) query.Add($"month={_month}");
+        if (_quarter.HasValue) query.Add($"quarter={_quarter}");
+            
+        }
+
+
+        var appsUrl = "api/ApplicatonsHomeDKN";
+        if (query.Any())
+            appsUrl += "?" + string.Join("&", query);
+        apps = await api.GetAsync<List<ApplicationDKN>>(appsUrl);
+
+
+        var sqrUrl = "api/SqrByStatus";
+        if (query.Any())
+            sqrUrl += "?" + string.Join("&", query);
+        data = await api.GetAsync<List<StatusSquare>>(sqrUrl) ?? new();
+
+        StateHasChanged();
+    }
+
 
    
-        private List<StatusSquare>? data = new();
-        private string[] LabelsSqr => data.Select(x => x.Name).ToArray();
-        private double[] DataSqr => data.Select(x => Math.Round(x.Squer, 1)).ToArray();
-        private double[] SumSqr => data.Where(o => o.Name == "ИСПОЛНЕНА" || o.Name == "ДУБЛЬ").Select(x => Math.Round(x.Squer, 1)).ToArray();
-
-        private int? _year;
-        private int? _month;
-        private int? _quarter;
-
-        private List<ApplicationDKN> apps = new();
-        private string[] LabelApps => apps.Select(x => x.Name).ToArray();
-        private int[] DataApps => apps
-         .Select(x => (int)(x.CountApplications ?? 0))
-         .ToArray();
-
-        private async Task OnPeriodChanged(DialogPer.Periods periods)
-        {
-            _year = periods.Year;
-            _month = periods.Month;
-            _quarter = periods.Quarter;
-            await LoadData();
-        }
-
-        private async Task LoadData()
-        {
-            var query = new List<string>();
-
-            if (_year.HasValue) query.Add($"year={_year}");
-            if (_month.HasValue) query.Add($"month={_month}");
-            if (_quarter.HasValue) query.Add($"quarter={_quarter}");
-
-           
-            var appsUrl = "api/ApplicatonsHomeDKN";
-            if (query.Any())
-                appsUrl += "?" + string.Join("&", query);
-            apps = await api.GetAsync<List<ApplicationDKN>>(appsUrl);
-
-           
-            var sqrUrl = "api/SqrByStatus";
-            if (query.Any())
-                sqrUrl += "?" + string.Join("&", query);
-            data = await api.GetAsync<List<StatusSquare>>(sqrUrl) ?? new();
-        
-            StateHasChanged();
-        }
-
-      
-
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadData();
+        await LoadData(null, null);
         data = await api.GetAsync<List<StatusSquare>>("api/SqrByStatus") ?? new();
     } 
 

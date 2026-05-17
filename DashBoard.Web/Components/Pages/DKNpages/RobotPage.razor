@@ -2,16 +2,30 @@
 @inject IDialogService DialogService
 @inject Services.ApiService api
 @inject NavigationManager Navigation
-@inject HttpClient httpClient
 @inject IJSRuntime JSRuntime
 @inject ISnackbar Snackbar
 <PageTitle>@Departs.Robots</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large">
     <MudGrid>
-        <MudItem sm="3" xs="6">
-            <DialogPer OnChange="OnPeriodChanged" />
+        <MudItem sm="6" xs="12">
+            
+            @if (_useDateRange)
+            {
+                <MudDateRangePicker 
+                                    Label="Выберите период"
+                                    DateFormat="dd.MM.yyyy"
+                                    Clearable="true"
+                                    DateRangeChanged="OnDateRangeChanged" />
+                <MudButton Size="Size.Small" OnClick="SwitchFilter">Период (год/месяц/квартал)</MudButton>
+            }
+            else
+            {
+                <DialogPer OnChange="OnPeriodChanged" />
+                <MudButton Size="Size.Small" OnClick="SwitchFilter">Календарь</MudButton>
+            }
         </MudItem>
+        
         <MudItem sm="3" xs="6">
             <MudAutocomplete T="RobotDto" Clearable="true"
                              Label="Робот"
@@ -19,24 +33,23 @@
                              ToStringFunc="r => r?.Name ?? string.Empty"
                              ValueChanged="OnRobotChanged"
                              MinCharacters="0"
-                             CoerceValue="false"
                              ResetValueOnEmptyText="true" />
+        </MudItem>
+        
+        <MudItem md="3" sm="3" Class="d-flex justify-end gap-1">
             <MudButton Variant="Variant.Outlined"
                        Color="Color.Info"
                        StartIcon="@Icons.Material.Filled.FileDownload"
-                       OnClick="ExportRobots"
-                       Class="my-1">
-                Excel
+                       OnClick="ExportRobots">
+                
             </MudButton>
-        </MudItem>
-        <MudItem md="6" sm="6" Class="d-flex justify-sm-end justify-center pr-sm-4">
-            <MudButton Href="/AddRobot" StartIcon="@Icons.Material.Filled.Add">Добавить робота</MudButton>
+            <MudButton Href="/AddRobot" StartIcon="@Icons.Material.Filled.Add">Добавить</MudButton>
             @if (_idRobot.HasValue)
             {
                 <MudButton OnClick="() => EditRobot(_idRobot.Value)"
                            StartIcon="@Icons.Material.Filled.Edit"
                            Color="Color.Warning">
-                    Редактировать робота
+                    Ред.
                 </MudButton>
             }
         </MudItem>
@@ -57,25 +70,51 @@
 </MudContainer>
 
 @code {
+    private DateRange? _dateRange;
+    private bool _useDateRange = true; 
     private int? _year;
     private int? _month;
     private int? _quarter;
     private List<UniversalChartResponseV3> charts = new();
     private int? _idRobot;
     private bool _isLoading;
+
+    private void SwitchFilter()
+    {
+        _useDateRange = !_useDateRange;
+        _dateRange = null;
+        _year = null;
+        _month = null;
+        _quarter = null;
+        StateHasChanged();
+    }
+
+    private async Task OnDateRangeChanged(DateRange? range)
+    {
+        _dateRange = range;
+        await LoadCharts();
+    }
+
     private async Task ExportRobots()
     {
         try
         {
-            var query = new List<string>();
-            if (_year.HasValue) query.Add($"year={_year}");
-            if (_quarter.HasValue) query.Add($"quarter={_quarter}");
-
+            var query = GetQueryParams();
+            if (_useDateRange && _dateRange?.Start.HasValue == true && _dateRange?.End.HasValue == true)
+            {
+                query.Add($"dateFrom={_dateRange.Start.Value:yyyy-MM-dd}");
+                query.Add($"dateTo={_dateRange.End.Value:yyyy-MM-dd}");
+            }
+            else
+            {
+                if (_year.HasValue) query.Add($"year={_year}");
+                if (_quarter.HasValue) query.Add($"quarter={_quarter}");
+            }
             var url = "api/universal-chart-v3/export-robots-pivot";
             if (query.Any()) url += "?" + string.Join("&", query);
 
             var result = await api.GetAsync<ExportResult>(url);
-        
+
             if (result != null && !string.IsNullOrEmpty(result.Base64))
             {
                 await JSRuntime.InvokeVoidAsync("downloadFile",
@@ -93,11 +132,13 @@
             Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
         }
     }
+
     public class ExportResult
     {
         public string Base64 { get; set; } = "";
         public string FileName { get; set; } = "";
     }
+
     private void EditRobot(int robotId)
     {
         Navigation.NavigateTo($"/EditRobot/{robotId}");
@@ -106,12 +147,9 @@
     private async Task<IEnumerable<RobotDto>> SearchRobots(string value, CancellationToken token)
     {
         if (string.IsNullOrWhiteSpace(value))
-        {
-            return await api.GetAsync<List<RobotDto>>("api/autocomplete-robots");
-        }
-        return await api.GetAsync<List<RobotDto>>(
-            $"api/autocomplete-robots?search={value}"
-        );
+            return await api.GetAsync<List<RobotDto>>("api/autocomplete-robots") ?? new();
+        
+        return await api.GetAsync<List<RobotDto>>($"api/autocomplete-robots?search={value}") ?? new();
     }
 
     protected override async Task OnInitializedAsync()
@@ -119,36 +157,40 @@
         await LoadCharts();
     }
 
+    private List<string> GetQueryParams()
+    {
+        var query = new List<string>();
+
+        if (_useDateRange && _dateRange?.Start.HasValue == true && _dateRange?.End.HasValue == true)
+        {
+            query.Add($"dateFrom={_dateRange.Start.Value:yyyy-MM-dd}");
+            query.Add($"dateTo={_dateRange.End.Value:yyyy-MM-dd}");
+        }
+        else
+        {
+            if (_year.HasValue) query.Add($"year={_year}");
+            if (_month.HasValue) query.Add($"month={_month}");
+            if (_quarter.HasValue) query.Add($"quarter={_quarter}");
+        }
+
+        if (_idRobot.HasValue) query.Add($"robotId={_idRobot}");
+
+        return query;
+    }
+
     private async Task LoadCharts()
     {
         if (_isLoading) return;
-        
         _isLoading = true;
+
         try
         {
-            var query = new List<string>();
-
-            if (_idRobot.HasValue)
-                query.Add($"robotId={_idRobot}");
-
-            if (_year.HasValue)
-                query.Add($"year={_year}");
-
-            if (_month.HasValue)
-                query.Add($"month={_month}");
-
-            if (_quarter.HasValue)
-                query.Add($"quarter={_quarter}");
-
+            var query = GetQueryParams();
             var url = "api/universal-chart-v3";
-
-            if (query.Any())
-                url += "?" + string.Join("&", query);
+            if (query.Any()) url += "?" + string.Join("&", query);
 
             var result = await api.GetAsync<List<UniversalChartResponseV3>>(url);
-            
-            
-            charts = result?.ToList() ?? new List<UniversalChartResponseV3>();
+            charts = result?.ToList() ?? new();
         }
         finally
         {
@@ -160,7 +202,6 @@
     private async Task HandleChartUpdate()
     {
         await LoadCharts();
-        StateHasChanged();
     }
 
     private async Task OnRobotChanged(RobotDto robot)

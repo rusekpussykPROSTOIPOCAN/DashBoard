@@ -14,7 +14,7 @@ namespace DashBoard.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetSqrByStatus(int? year = null, int? month = null, int? quarter = null)
+        public async Task<IActionResult> GetSqrByStatus(DateTime? dateFrom, DateTime? dateTo,int? year = null, int? month = null, int? quarter = null)
         {
             try
             {
@@ -22,6 +22,15 @@ namespace DashBoard.Api.Controllers
                     .Include(o => o.id_statusNavigation)
                     .Where(o => o.id_statusNavigation.name != "ОТМЕНЕНА КАК ДУБЛЬ")
                     .AsQueryable();
+
+                if(dateFrom.HasValue && dateTo.HasValue)
+                {
+                    var from = DateOnly.FromDateTime(dateFrom.Value);
+                    var to = DateOnly.FromDateTime(dateTo.Value);
+                    query = query.Where(o=>o.date_get_materials.HasValue && o.date_get_materials.Value>=from && o.date_get_materials.Value <= to);
+                }
+                else
+                {
 
                 if (year.HasValue)
                 {
@@ -43,6 +52,9 @@ namespace DashBoard.Api.Controllers
                                           o.date_get_materials.Value.Month >= startMonth &&
                                           o.date_get_materials.Value.Month <= endMonth);
                 }
+                
+                }
+
 
                 var result = await query
                     .GroupBy(o => o.id_statusNavigation.name)

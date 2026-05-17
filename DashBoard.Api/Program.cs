@@ -1,4 +1,5 @@
 
+using DashBoard.Api.Service;
 using DashBoard.Api.Services;
 using DashBoard.Lib.Data;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
-
+builder.Services.AddScoped<ExcelInputService>();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? builder.Configuration["ConnectionStrings__DefaultConnection"];
 
@@ -31,7 +32,6 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-/*app.UseHttpsRedirection();*/
 app.UseAuthorization();
 app.MapControllers();
 
