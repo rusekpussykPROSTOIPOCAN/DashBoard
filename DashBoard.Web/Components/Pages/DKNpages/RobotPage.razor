@@ -24,6 +24,12 @@
                 <DialogPer OnChange="OnPeriodChanged" />
                 <MudButton Size="Size.Small" OnClick="SwitchFilter">Календарь</MudButton>
             }
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Info"
+                       StartIcon="@Icons.Material.Filled.FileDownload"
+                       OnClick="ExportRobots">
+                
+            </MudButton>
         </MudItem>
         
         <MudItem sm="3" xs="6">
@@ -37,12 +43,6 @@
         </MudItem>
         
         <MudItem md="3" sm="3" Class="d-flex justify-end gap-1">
-            <MudButton Variant="Variant.Outlined"
-                       Color="Color.Info"
-                       StartIcon="@Icons.Material.Filled.FileDownload"
-                       OnClick="ExportRobots">
-                
-            </MudButton>
             <MudButton Href="/AddRobot" StartIcon="@Icons.Material.Filled.Add">Добавить</MudButton>
             @if (_idRobot.HasValue)
             {

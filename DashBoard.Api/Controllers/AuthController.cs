@@ -83,7 +83,7 @@ namespace DashBoard.Api.Controllers
 
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             var encodedToken = Uri.EscapeDataString(token);
-            var confirmLink = $"http://localhost:8080/api/auth/confirm-email?userId={user.Id}&token={encodedToken}";
+            var confirmLink = $"https://localhost/api/auth/confirm-email?userId={user.Id}&token={encodedToken}";
             await LogEvent("Регистрация", $"Новый пользователь {user.UserName} добавлен", user.UserName);
             await _emailService.SendEmailAsync(user.Email, "Подтверждение регистрации",
                 $"<h2>Добро пожаловать!</h2><p>Подтвердите email: <a href='{confirmLink}'>нажмите здесь</a></p>");
@@ -141,7 +141,7 @@ namespace DashBoard.Api.Controllers
 
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
             var encodedToken = HttpUtility.UrlEncode(token);
-            var link = $"http://localhost:5000/reset-password?email={user.Email}&token={encodedToken}";
+            var link = $"https://localhost/reset-password?email={user.Email}&token={encodedToken}";
 
             await _emailService.SendEmailAsync(user.Email, "Сброс пароля",
                 $"<p>Для сброса пароля: <a href='{link}'>нажмите здесь</a></p>");
