@@ -48,6 +48,7 @@ namespace DashBoard.Lib.DTOs
         public string DistrictName { get; set; } = "";
         public double? Square { get; set; }
         public DateOnly? DateGetMaterials { get; set; }
+        public string? UserId { get; set; }
 
         [JsonIgnore]
         public DateTime? DateGetMaterialsDateTime
@@ -60,6 +61,7 @@ namespace DashBoard.Lib.DTOs
     {
         public int? IdDistrict { get; set; }
         public int? IdAddress { get; set; }
+        public string? UserId { get; set; }
         public string? ViolationName { get; set; }
         public int? QuantityNewViolation { get; set; }
         public int? IdViolation { get; set; }
@@ -69,6 +71,7 @@ namespace DashBoard.Lib.DTOs
     {
         public int Id { get; set; }
         public int? IdDistrict { get; set; }
+        public string? UserId { get; set; }
         public string DistrictName { get; set; } = "";
         public int? IdAddress { get; set; }
         public int? QuantityNewViolation { get; set; }
@@ -93,6 +96,7 @@ namespace DashBoard.Lib.DTOs
     {
         public int? IdStatus { get; set; }
         public int? IdAddress { get; set; }
+        public string? UserId { get; set; }
         public string? AddressName { get; set; }
         public int? IdDistrict { get; set; }
         public double? Square { get; set; }

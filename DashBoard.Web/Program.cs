@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 var apiUrl = Environment.GetEnvironmentVariable("API_URL");
 
-// Если переменная не задана (локальный запуск), используем localhost
+
 if (string.IsNullOrEmpty(apiUrl))
 {
     apiUrl = "http://localhost:8080";

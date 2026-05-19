@@ -1,6 +1,6 @@
 ﻿@inject Services.ApiService api
 @inject ISnackbar Snackbar
-
+@inject IJSRuntime JSRuntime
 <MudDialog>
     <DialogContent>
         <MudList T="IGrouping<int, RobotPeriods>" Dense="true">
@@ -83,6 +83,7 @@
 
     private async Task Submit()
     {
+        var userId = await JSRuntime.GetUserId();
         var update = new UpdateChartRequest
         {
             Type = DataResponse.Type,
@@ -90,7 +91,8 @@
             Block = Block,
             Items = Items,
             Year = selected.Year,
-            Month = selected.Month
+            Month = selected.Month,
+            UserId = userId
         };
 
         try

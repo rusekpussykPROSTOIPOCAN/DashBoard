@@ -1,0 +1,57 @@
+﻿@page "/confirm-email"
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+@if (_isLoading)
+{
+    <MudText>Подтверждение email...</MudText>
+}
+else if (_isSuccess)
+{
+    <MudText Color="Color.Success">✅ Email подтверждён! Теперь вы можете войти.</MudText>
+}
+else
+{
+    <MudText Color="Color.Error">❌ @_errorMessage</MudText>
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _isSuccess;
+    private string _errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = new Uri(Navigation.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var userId = query["userId"];
+        var token = query["token"];
+
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
+        {
+            _errorMessage = "Неверная ссылка";
+            _isLoading = false;
+            return;
+        }
+
+        try
+        {
+            
+            var apiUrl = $"http://api:8080/api/auth/confirm-email?userId={userId}&token={token}";
+            var response = await Http.GetAsync(apiUrl);
+
+            if (response.IsSuccessStatusCode)
+                _isSuccess = true;
+            else
+                _errorMessage = await response.Content.ReadAsStringAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

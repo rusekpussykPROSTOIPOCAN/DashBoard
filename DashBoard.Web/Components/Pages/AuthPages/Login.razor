@@ -1,0 +1,72 @@
+﻿@page "/login"
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IJSRuntime JSRuntime
+@using System.Text
+@using System.Text.Json
+
+<MudContainer MaxWidth="MaxWidth.Small">
+    <MudCard Class="mt-10 pa-5">
+        <MudCardContent>
+            <MudText Typo="Typo.h5" Class="mb-4">Вход в систему</MudText>
+            
+            <MudTextField @bind-Value="_email" Label="Email" />
+            <MudTextField @bind-Value="_password" Label="Пароль" InputType="InputType.Password" />
+            <MudCheckBox T="string" @bind-Checked="_rememberMe" Label="Запомнить меня" />
+            
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleLogin" Class="mt-4" FullWidth="true">
+                Войти
+            </MudButton>
+            
+            <MudText Class="mt-2">
+                Нет аккаунта? <MudLink Href="/register">Зарегистрироваться</MudLink>
+            </MudText>
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private string _email = "";
+    private string _password = "";
+    private bool _rememberMe;
+
+    private async Task HandleLogin()
+    {
+        var data = new { email = _email, password = _password, rememberMe = _rememberMe };
+        var json = JsonSerializer.Serialize(data);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var response = await Http.PostAsync("http://api:8080/api/auth/login", content);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+
+            await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('authData', '{responseBody.Replace("'", "\\'")}')");
+
+           
+            var result = JsonSerializer.Deserialize<LoginResult>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var token = result?.Token ?? "";
+
+            if (!string.IsNullOrEmpty(token))
+            {
+                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('authToken', '{token}')");
+                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('userName', '{result?.FullName}')");
+                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('userId', '{result?.UserId}')");
+            }
+
+            Snackbar.Add($"Добро пожаловать, {result?.FullName}!", Severity.Success);
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+        else
+        {
+            Snackbar.Add("Неверный email или пароль", Severity.Error);
+        }
+    
+
+}
+    
+    
+}

@@ -1,67 +1,111 @@
 ﻿@inherits LayoutComponentBase
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
 
 <MudThemeProvider />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
-<div style="position: fixed; top: 10px; left: 10px; z-index: 9999;">
-    <MudImage Alt="Логотип"
-              Width="150"
-              Height="50"
-              Src="Images/logo.svg" />
+
+
+<div style="position: fixed; top: 0; left: 0; right: 0; z-index: 9999; background: white; padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <MudImage Alt="Логотип" Width="150" Height="40" Src="Images/logo.svg" />
+
+    <div style="display: flex; gap: 8px; align-items: center;">
+        @if (!_isLoggedIn)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/login" Size="Size.Small">Войти</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/register" Size="Size.Small">Регистрация</MudButton>
+        }
+        else
+        {
+            <MudText Typo="Typo.body1" Class="mx-2"><b>@_userName</b></MudText>
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="Logout" Size="Size.Small">Выйти</MudButton>
+        }
+    </div>
 </div>
 
-<MudLayout>
-   
-    <MudDrawer @bind-Open="@_openStart" Style="height:fit-content;" Anchor="Anchor.Start" Elevation="0" Variant="@DrawerVariant.Persistent">
-     
-        <MudDrawerHeader>
-            <MudText Typo="Typo.h6">@Departs.Departsfirst</MudText>
-        </MudDrawerHeader>
-        <MudNavMenu Style="height:auto;max-height:none;">
-            <MudNavLink Href="/AnalyticHome" Icon="">@Departs.Home @Departs.DepartsSecond</MudNavLink>
-        </MudNavMenu>
-    </MudDrawer>
-    <MudDrawer Style="height:fit-content;" @bind-Open="@_openEnd"  Anchor="Anchor.End" Elevation="0" Variant="@DrawerVariant.Persistent">
-        <MudDrawerHeader>
-            <MudText Typo="Typo.h6">@Departs.DepartsSecond</MudText>
-        </MudDrawerHeader>
-       <NavMenu/>
-    </MudDrawer>
-    <div class="d-flex justify-center align-center mud-height-full">
-        <MudButton Color="Color.Inherit" OnClick="@ToggleStartDrawer" StartIcon="@(Rtl ? Icons.Material.Filled.East :
-                                                                      Icons.Material.Filled.West)" Class="mx-2">@verbs.chooshe @Departs.deps @Departs.Departsfirst1</MudButton>
-        <MudButton Color="Color.Inherit" OnClick="@ToggleEndDrawer" EndIcon="@(Rtl ? Icons.Material.Filled.West :
-                                                                    Icons.Material.Filled.East)" Class="mx-2">@verbs.chooshe @Departs.deps @Departs.DepartsSecond</MudButton>
-    </div>
-    <MudMainContent>
-        <MudContainer  MaxWidth="MaxWidth.ExtraLarge" >
+
+<MudLayout Style="margin-top: 56px;">
+    @if (_isLoggedIn)
+    {
+        <MudDrawer @bind-Open="@_openStart" Style="height:fit-content;" Anchor="Anchor.Start" Elevation="0" Variant="@DrawerVariant.Persistent">
+            <MudDrawerHeader>
+                <MudText Typo="Typo.h6">@Departs.Departsfirst</MudText>
+            </MudDrawerHeader>
+            <MudNavMenu Style="height:auto;max-height:none;">
+                <MudNavLink Href="/AnalyticHome" Icon="">@Departs.Home @Departs.DepartsSecond</MudNavLink>
+            </MudNavMenu>
+            <MudDrawerHeader>
+                <MudText Typo="Typo.h6">@Departs.DepartsSecond</MudText>
+            </MudDrawerHeader>
+            <NavMenu />
+        </MudDrawer>
+
+        <MudDrawer Style="height:fit-content;" @bind-Open="@_openEnd" Anchor="Anchor.End" Elevation="0" Variant="@DrawerVariant.Persistent">
            
+                <MudNavMenu Style="height:auto;max-height:none;">
+                <MudNavLink Href="/profile" Icon="@Icons.Material.Filled.Person">Профиль</MudNavLink>
+                <MudNavLink Href="/events" Icon="@Icons.Material.Filled.EventNote">Лента событий</MudNavLink>
+                <MudNavLink Href="/chat" Icon="@Icons.Material.Filled.Chat">Чат</MudNavLink>
+               
+                </MudNavMenu>
+           
+        </MudDrawer>
+           
+
+        <div class="d-flex justify-center align-center mud-height-full">
+            <MudButton Color="Color.Inherit" OnClick="@ToggleStartDrawer" StartIcon="@(Rtl ? Icons.Material.Filled.East : Icons.Material.Filled.West)" Class="mx-2">Отделы</MudButton>
+            <MudButton Color="Color.Inherit" OnClick="@ToggleEndDrawer" EndIcon="@(Rtl ? Icons.Material.Filled.West : Icons.Material.Filled.East)" Class="mx-2">Комьюнити</MudButton>
+        </div>
+       
+    }
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge">
             @Body
         </MudContainer>
     </MudMainContent>
-
-
 </MudLayout>
 
 @code
 {
-    
     private bool _openStart = false;
     private bool _openEnd = false;
+    private string? _userName;
+    private bool _isLoggedIn;
 
     [CascadingParameter]
     public bool Rtl { get; set; }
-
-    private void ToggleStartDrawer()
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        _openStart = !_openStart;
+        if (firstRender)
+        {
+            try
+            {
+                var token = await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('authToken')");
+                _isLoggedIn = !string.IsNullOrEmpty(token);
+
+                if (_isLoggedIn)
+                {
+                    _userName = await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('userName')");
+                }
+
+                StateHasChanged();
+            }
+            catch { }
+        }
     }
 
-    private void ToggleEndDrawer()
+    private async Task Logout()
     {
-        _openEnd = !_openEnd;
+        await JSRuntime.InvokeVoidAsync("eval", "localStorage.removeItem('authToken'); localStorage.removeItem('userName')");
+        _isLoggedIn = false;
+        _userName = null;
+        NavigationManager.NavigateTo("/", forceLoad: true);
     }
+
+    private void ToggleStartDrawer() => _openStart = !_openStart;
+    private void ToggleEndDrawer() => _openEnd = !_openEnd;
 }
-
-

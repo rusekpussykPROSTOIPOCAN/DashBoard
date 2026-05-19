@@ -1,13 +1,10 @@
 ﻿@page "/EditAnaliticForm/{id:int}"
-@using System.Net.Http.Json
-@using System.Text.Json
-@using System.Text
 @inject Services.ApiService api
 @using MudBlazor
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
-
-<MudContainer>
+@inject IJSRuntime JSRuntime
+<MudContainer MaxWidth="MaxWidth.ExtraLarge">
     <MudText Typo="Typo.h4" Class="mb-4">
         @(_isEdit ? "Редактирование задачи" : "Новая задача")
     </MudText>
@@ -146,6 +143,7 @@
             var data = await api.GetAsync<WorkProgressResponce>($"api/form/{Id}");
             if (data != null)
             {
+                 var userId = await JSRuntime.GetUserId();
                 _formData = new AddWorkProgressRequest
                 {
                     IdSourse = data.IdSourse,
@@ -153,6 +151,7 @@
                     CompletePerimeter = data.CompletePerimeter,
                     RemainedPerimeter = data.RemainedPerimeter,
                     Comment = data.Comment,
+                    UserId = userId,
                     Violations = data.Violations.Select(v => new ViolationRequest
                     {
                         IdArticle = v.IdArticle,
@@ -200,6 +199,7 @@
 
             if (_isEdit)
             {
+                var userId = await JSRuntime.GetUserId();
                 var updateRequest = new EditWorkProgressRequest
                 {
                     Id = Id,
@@ -208,7 +208,8 @@
                     CompletePerimeter = _formData.CompletePerimeter,
                     RemainedPerimeter = _formData.RemainedPerimeter,
                     Comment = _formData.Comment,
-                    Violations = _formData.Violations
+                    Violations = _formData.Violations,
+                    UserId = userId
                 };
                 await api.PutAsync<object>($"api/form/{Id}", updateRequest);
             }

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using NpgsqlTypes;
+using Org.BouncyCastle.Asn1.Ocsp;
 using System.Text.Json;
 
 namespace DashBoard.Api.Controllers
@@ -432,7 +433,7 @@ namespace DashBoard.Api.Controllers
                 cmd.Parameters.Add("month", NpgsqlDbType.Integer).Value = update.Month;
 
                 await cmd.ExecuteNonQueryAsync();
-
+                await LogEvent("Обновлен робот", $"Обновлен робот", update.UserId);
                 return Ok(new { message = "Обновлено" });
             }
             catch (Exception ex)

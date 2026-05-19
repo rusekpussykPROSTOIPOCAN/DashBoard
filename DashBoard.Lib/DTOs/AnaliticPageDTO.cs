@@ -57,6 +57,8 @@ namespace DashBoard.Lib.DTOs
 
         [JsonPropertyName("old_violations")]
         public decimal OldViolations { get; set; }
+        [JsonPropertyName("created_by_user_id")]
+        public string? CreatedByUser { get; set; }
     }
     public class PeriodFilterDto
     {

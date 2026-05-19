@@ -1,8 +1,10 @@
 ﻿using DashBoard.Lib.Data;
 using DashBoard.Lib.DTOs;
 using DashBoard.Lib.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace DashBoard.Api.Controllers
 {
@@ -56,7 +58,7 @@ namespace DashBoard.Api.Controllers
                 return StatusCode(500, $"Ошибка при получении данных: {ex.Message}");
             }
         }
-
+        
         [HttpPost("form")]
         public async Task<IActionResult> CreateWorkProgress([FromBody] AddWorkProgressRequest request)
         {
@@ -75,6 +77,8 @@ namespace DashBoard.Api.Controllers
                 if (!actualSourceId.HasValue)
                     return BadRequest("Не выбран источник");
 
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
                 var workProgress = new work_progress
                 {
                     id_sourse = actualSourceId,
@@ -82,7 +86,8 @@ namespace DashBoard.Api.Controllers
                     complete_perimeter = request.CompletePerimeter,
                     remained_perimeter = request.RemainedPerimeter,
                     comment = request.Comment,
-                    created_at = DateTime.Now
+                    created_at = DateTime.Now,
+                    created_by_user_id = request.UserId
                 };
 
                 _dashboard.work_progresses.Add(workProgress);
@@ -111,7 +116,7 @@ namespace DashBoard.Api.Controllers
 
                 await _dashboard.SaveChangesAsync();
                 await transaction.CommitAsync();
-
+                await LogEvent("Добавлена запись", $"Добавлена запись на страницу аналитики", request.UserId);
                 return Ok(new AddWorkProgressResult
                 {
                     id = workProgress.id,
@@ -147,6 +152,7 @@ namespace DashBoard.Api.Controllers
                 workProgress.complete_perimeter = request.CompletePerimeter;
                 workProgress.remained_perimeter = request.RemainedPerimeter;
                 workProgress.comment = request.Comment;
+                workProgress.created_by_user_id = request.UserId ?? workProgress.created_by_user_id;
 
                 _dashboard.work_progress_violations.RemoveRange(workProgress.work_progress_violations);
 
@@ -168,7 +174,7 @@ namespace DashBoard.Api.Controllers
 
                 await _dashboard.SaveChangesAsync();
                 await transaction.CommitAsync();
-
+                await LogEvent("Обновлена запись", $"Обновлена запись на странице аналитики", request.UserId);
                 return Ok(new { id = workProgress.id, message = "Данные успешно обновлены" });
             }
             catch (Exception ex)
@@ -193,7 +199,7 @@ namespace DashBoard.Api.Controllers
                 _dashboard.work_progress_violations.RemoveRange(workProgress.work_progress_violations);
                 _dashboard.work_progresses.Remove(workProgress);
                 await _dashboard.SaveChangesAsync();
-
+                await LogEvent("Удалена запись", $"Удалена запись на странице аналитики");
                 return Ok(new { message = "Запись успешно удалена" });
             }
             catch (Exception ex)
@@ -216,7 +222,8 @@ namespace DashBoard.Api.Controllers
                         SourseName = wp.id_sourseNavigation.source,
                         AllPerimeter = wp.all_perimeter ?? 0,
                         CompletePerimeter = wp.complete_perimeter ?? 0,
-                        CreateAt = wp.created_at ?? DateTime.Now
+                        CreateAt = wp.created_at ?? DateTime.Now,
+                        CreatedByUser = wp.CreatedByUser.FullName 
                     })
                     .ToListAsync();
 

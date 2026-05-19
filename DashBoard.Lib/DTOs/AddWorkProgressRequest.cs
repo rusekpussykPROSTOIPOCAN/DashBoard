@@ -11,6 +11,7 @@ namespace DashBoard.Lib.DTOs
         public int AllPerimeter { get; set; }
         public int CompletePerimeter { get; set; }
         public DateTime CreateAt { get; set; }
+        public string? CreatedByUser { get; set; }
     }
 
     public class ArticleDto
@@ -38,6 +39,7 @@ namespace DashBoard.Lib.DTOs
         public int CompletePerimeter { get; set; }
         public int RemainedPerimeter { get; set; }
         public string? Comment { get; set; }
+        public string? UserId { get; set; }
         public List<ViolationRequest> Violations { get; set; } = new();
     }
 
@@ -63,6 +65,7 @@ namespace DashBoard.Lib.DTOs
         public int? NewViolations { get; set; }
         public int? OldViolations { get; set; }
     }
+    
     public class EditWorkProgressRequest
     {
         public int Id { get; set; }
@@ -71,6 +74,7 @@ namespace DashBoard.Lib.DTOs
         public int CompletePerimeter { get; set; }
         public int RemainedPerimeter { get; set; }
         public string? Comment { get; set; }
+        public string? UserId { get; set; }
         public List<ViolationRequest> Violations { get; set; } = new();
     }
     public class WorkProgressResponce  

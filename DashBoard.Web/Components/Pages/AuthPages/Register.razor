@@ -1,0 +1,54 @@
+﻿@page "/register"
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@using System.Text
+@using System.Text.Json
+
+<MudContainer MaxWidth="MaxWidth.Small">
+    <MudCard Class="mt-10 pa-5">
+        <MudCardContent>
+            <MudText Typo="Typo.h5" Class="mb-4">Регистрация</MudText>
+
+            <MudTextField @bind-Value="_fullName" Label="ФИО" />
+            <MudTextField @bind-Value="_email" Label="Email" />
+            <MudTextField @bind-Value="_password" Label="Пароль" InputType="InputType.Password" />
+            <MudTextField @bind-Value="_department" Label="Отдел" />
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleRegister" Class="mt-4" FullWidth="true">
+                Зарегистрироваться
+            </MudButton>
+
+            <MudText Class="mt-2">
+                Уже есть аккаунт? <MudLink Href="/login">Войти</MudLink>
+            </MudText>
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private string _fullName = "";
+    private string _email = "";
+    private string _password = "";
+    private string _department = "";
+
+    private async Task HandleRegister()
+    {
+        var data = new { email = _email, password = _password, fullName = _fullName, department = _department };
+        var json = JsonSerializer.Serialize(data);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var response = await Http.PostAsync("http://api:8080/api/auth/register", content);
+        
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Регистрация успешна! Проверьте почту.", Severity.Success);
+            Navigation.NavigateTo("/login");
+        }
+        else
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            Snackbar.Add($"Ошибка: {error}", Severity.Error);
+        }
+    }
+}

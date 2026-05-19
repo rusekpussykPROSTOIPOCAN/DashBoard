@@ -1,0 +1,145 @@
+﻿@page "/profile"
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Medium">
+    <MudText Typo="Typo.h4" Class="mb-4">Профиль</MudText>
+    
+    @if (_isLoading)
+    {
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudCard Class="pa-5">
+            <MudCardContent>
+                <MudStack Spacing="3">
+                    <MudText Typo="Typo.h5">@_fullName</MudText>
+                    <MudText Color="Color.Secondary">@_email</MudText>
+                    <div>
+                        <MudChip T="string" Color="Color.Primary" Size="Size.Small">@_role</MudChip>
+                    </div>
+                    
+                    <MudDivider Class="my-2" />
+                    
+                    <MudButton Variant="Variant.Outlined" 
+                               Color="Color.Primary" 
+                               OnClick="OpenChangePasswordDialog" 
+                               StartIcon="@Icons.Material.Filled.Lock">
+                        Сменить пароль
+                    </MudButton>
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    }
+</MudContainer>
+
+
+<MudDialog @bind-Visible="_changePasswordVisible" Title="Смена пароля" MaxWidth="MaxWidth.Small">
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudTextField @bind-Value="_oldPassword" 
+                          Label="Текущий пароль" 
+                          InputType="InputType.Password" />
+            <MudTextField @bind-Value="_newPassword" 
+                          Label="Новый пароль" 
+                          InputType="InputType.Password" />
+            <MudTextField @bind-Value="_confirmPassword" 
+                          Label="Подтвердите пароль" 
+                          InputType="InputType.Password" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CancelChangePassword">Отмена</MudButton>
+        <MudButton Color="Color.Primary" OnClick="HandleChangePassword">Сменить</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool _isLoading = true;
+    private string _fullName = "";
+    private string _email = "";
+    private string _role = "";
+
+    private bool _changePasswordVisible;
+    private string _oldPassword = "";
+    private string _newPassword = "";
+    private string _confirmPassword = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _fullName = (await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('userName')"))?.Trim('"', '\'') ?? "Неизвестно";
+            _email = (await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('userEmail')"))?.Trim('"', '\'') ?? "";
+            _role = "Пользователь";
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OpenChangePasswordDialog()
+    {
+        _oldPassword = "";
+        _newPassword = "";
+        _confirmPassword = "";
+        _changePasswordVisible = true;
+    }
+
+    private void CancelChangePassword()
+    {
+        _changePasswordVisible = false;
+    }
+
+    private async Task HandleChangePassword()
+    {
+        if (string.IsNullOrWhiteSpace(_oldPassword))
+        {
+            Snackbar.Add("Введите текущий пароль", Severity.Warning);
+            return;
+        }
+
+        if (_newPassword.Length < 6)
+        {
+            Snackbar.Add("Пароль должен быть не менее 6 символов", Severity.Warning);
+            return;
+        }
+
+        if (_newPassword != _confirmPassword)
+        {
+            Snackbar.Add("Пароли не совпадают", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var token = (await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('authToken')"))?.Trim('"', '\'');
+            Http.DefaultRequestHeaders.Authorization = 
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var data = new { oldPassword = _oldPassword, newPassword = _newPassword };
+            var content = new StringContent(
+                System.Text.Json.JsonSerializer.Serialize(data), 
+                System.Text.Encoding.UTF8, 
+                "application/json");
+
+            var response = await Http.PostAsync("http://api:8080/api/auth/change-password", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Пароль успешно изменён!", Severity.Success);
+                _changePasswordVisible = false;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Ошибка: {error}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
+        }
+    }
+}

@@ -10,6 +10,7 @@ namespace DashBoard.Lib.DTOs
     {
         public int robotId {  get; set; }
         public List<RobotPeriods> Period {  get; set; }
+        public string? UserId { get; set; }
 
     }
     public class RobotPeriods {

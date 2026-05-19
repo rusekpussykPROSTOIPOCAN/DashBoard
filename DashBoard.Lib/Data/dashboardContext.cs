@@ -1,12 +1,13 @@
 ﻿using DashBoard.Lib.DTOs;
 using DashBoard.Lib.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 
 namespace DashBoard.Lib.Data;
 
-public partial class dashboardContext : DbContext
+public partial class dashboardContext : IdentityDbContext<ApplicationUser>
 {
     public dashboardContext()
     {
@@ -32,6 +33,8 @@ public partial class dashboardContext : DbContext
             await SaveChangesAsync();
         }
     }
+    public virtual DbSet<UserEvent> UserEvents { get; set; }
+    public virtual DbSet<EventLog> EventLogs { get; set; }
     public virtual DbSet<address> addresses { get; set; }
 
     public virtual DbSet<article> articles { get; set; }
@@ -65,11 +68,12 @@ public partial class dashboardContext : DbContext
     public virtual DbSet<work_progress> work_progresses { get; set; }
 
     public virtual DbSet<work_progress_violation> work_progress_violations { get; set; }
-
+    public virtual DbSet<ChatMessageEntity> ChatMessages { get; set; }
     public DbSet<ApplicationDKN> ApplicationDKN { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
         modelBuilder.Entity<AddWorkProgressResult>().HasNoKey();
         modelBuilder.Entity<JsonResultDto>().HasNoKey();
         modelBuilder.Entity<ApplicationDKN>().HasNoKey();
@@ -251,17 +255,24 @@ public partial class dashboardContext : DbContext
         modelBuilder.Entity<work_progress>(entity =>
         {
             entity.HasKey(e => e.id).HasName("work_progress_pkey");
-
             entity.ToTable("work_progress");
 
             entity.Property(e => e.comment).HasMaxLength(500);
             entity.Property(e => e.created_at)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone");
+            entity.Property(e => e.created_by_user_id).HasMaxLength(450);
 
-            entity.HasOne(d => d.id_sourseNavigation).WithMany(p => p.work_progresses)
+            entity.HasOne(d => d.id_sourseNavigation)
+                .WithMany(p => p.work_progresses)
                 .HasForeignKey(d => d.id_sourse)
                 .HasConstraintName("work_progress_id_sourse_fkey");
+
+            
+            entity.HasOne(d => d.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(d => d.created_by_user_id)
+                .HasConstraintName("work_progress_created_by_fkey");
         });
 
         modelBuilder.Entity<work_progress_violation>(entity =>

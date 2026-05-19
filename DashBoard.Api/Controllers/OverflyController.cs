@@ -1,11 +1,13 @@
-﻿using DashBoard.Lib.Data;
+﻿using DashBoard.Api.Service;
+using DashBoard.Api.Services;
+using DashBoard.Lib.Data;
 using DashBoard.Lib.DTOs;
 using DashBoard.Lib.Models;
+using DocumentFormat.OpenXml.Office2016.Excel;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Asn1.Ocsp;
 using System.Data;
-using DashBoard.Api.Services;
-using DashBoard.Api.Service;
 
 namespace DashBoard.Api.Controllers
 {
@@ -87,7 +89,7 @@ namespace DashBoard.Api.Controllers
                 }
 
                 await _dashboard.SaveChangesAsync();
-
+                
                 return Ok(new
                 {
                     message = $"Импортировано: {imported}",
@@ -435,7 +437,7 @@ namespace DashBoard.Api.Controllers
                     Square = created.square,
                     DateGetMaterials = created.date_get_materials
                 };
-
+                await LogEvent("Добавлена запись", $"Добавлена запись в блок 2", request.UserId);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -486,6 +488,7 @@ namespace DashBoard.Api.Controllers
                 item.date_get_materials = request.DateGetMaterials;
 
                 await _dashboard.SaveChangesAsync();
+                await LogEvent("Обновлена запись", $"Обновлена запись в блоке 2", request.UserId);
                 return Ok(new { message = "Запись обновлена" });
             }
             catch (Exception ex)
@@ -504,6 +507,7 @@ namespace DashBoard.Api.Controllers
 
                 _dashboard.overfly_block2s.Remove(item);
                 await _dashboard.SaveChangesAsync();
+                await LogEvent("Удалена запись", $"Удалена запись в блоке 2");
                 return Ok(new { message = "Запись удалена" });
             }
             catch (Exception ex)
@@ -595,7 +599,7 @@ namespace DashBoard.Api.Controllers
                     ViolationName = created.idviolationNavigation?.name ?? "",
                     DateDetection = created.date_detection
                 };
-
+                await LogEvent("Добавлена запись", $"Добавлена запись в блок 1", request.UserId);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -646,6 +650,7 @@ namespace DashBoard.Api.Controllers
                 item.date_detection = request.DateDetection;
 
                 await _dashboard.SaveChangesAsync();
+                await LogEvent("Обновлена запись", $"Обновлена запись в блоке 1", request.UserId);
                 return Ok(new { message = "Запись обновлена" });
             }
             catch (Exception ex)
@@ -664,6 +669,7 @@ namespace DashBoard.Api.Controllers
 
                 _dashboard.overfly_block1s.Remove(item);
                 await _dashboard.SaveChangesAsync();
+                await LogEvent("Удалена запись", $"Удалена запись в блоке 1");
                 return Ok(new { message = "Запись удалена" });
             }
             catch (Exception ex)

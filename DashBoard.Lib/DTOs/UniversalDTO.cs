@@ -33,6 +33,7 @@ namespace DashBoard.Lib.DTOs
 
     public class UpdateChartRequest
     {
+        public string? UserId { get; set; }
         public int Year { get; set; }
         public int Month { get; set; }
         public int RobotId { get; set; }

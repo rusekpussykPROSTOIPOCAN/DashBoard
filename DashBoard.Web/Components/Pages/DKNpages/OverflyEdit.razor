@@ -24,6 +24,7 @@
         @if (_activeTable == "block2")
         {
             <MudDataGrid @ref="_block2Grid"
+                         QuickFilter="@_quickFilterBlock2"
                          T="OverflyBlock2Item"
                          Items="@_block2Items"
                          EditMode="DataGridEditMode.Form"
@@ -31,6 +32,7 @@
                          CanceledEditingItem="@CanceledEditingBlock2"
                          CommittedItemChanges="@CommittedBlock2Changes"
                          Bordered="true"
+                         SortMode="SortMode.Multiple"
                          Dense="true"
                          EditTrigger="DataGridEditTrigger.Manual"
                          ReadOnly="false">
@@ -38,6 +40,8 @@
     <MudText Typo="Typo.h6">Заявки</MudText>
     <MudSpacer />
     
+       <MudTextField @bind-Value="_searchString" Placeholder="Поиск" Adornment="Adornment.Start" Immediate="true" Clearable="true"
+            AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mx-5"></MudTextField>
   <MudFileUpload T="IBrowserFile" FilesChanged="HandleBlock2Upload" Accept=".xlsx,.xls">
     <CustomContent>
         <MudButton Variant="Variant.Outlined"
@@ -55,7 +59,7 @@
 </ToolBarContent>
                 <Columns>
                     <PropertyColumn Property="x => x.Id" Title="ID" Editable="false" />
-                    <TemplateColumn Title="Район">
+                    <TemplateColumn Title="Район" >
                         <CellTemplate>
                             <MudText>@context.Item.DistrictName</MudText>
                         </CellTemplate>
@@ -140,11 +144,16 @@
                         </CellTemplate>
                     </TemplateColumn>
                 </Columns>
+                <PagerContent>
+                    <MudDataGridPager T="OverflyBlock2Item" />
+                </PagerContent>
             </MudDataGrid>
         }
         else
         {
             <MudDataGrid @ref="_block1Grid"
+                      
+                         SortMode="SortMode.Multiple"
              T="OverflyBlock1Item"
              Items="@_block1Items"
              EditMode="DataGridEditMode.Form"
@@ -154,11 +163,13 @@
              Bordered="true"
              Dense="true"
              EditTrigger="DataGridEditTrigger.Manual"
+                         QuickFilter="@_quickFilterBlock1"
              ReadOnly="false">
     <ToolBarContent>
         <MudText Typo="Typo.h6">Нарушения</MudText>
         <MudSpacer />
-           
+                    <MudTextField @bind-Value="_searchBlock1" Placeholder="Search" Adornment="Adornment.Start" Immediate="true" Clearable="true"
+                                  AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mx-5"></MudTextField>
   <MudFileUpload T="IBrowserFile" FilesChanged="HandleBlock1Upload" Accept=".xlsx,.xls">
     <CustomContent>
         <MudButton Variant="Variant.Outlined"
@@ -245,6 +256,9 @@
             </CellTemplate>
         </TemplateColumn>
     </Columns>
+                <PagerContent>
+                    <MudDataGridPager T="OverflyBlock1Item" />
+                </PagerContent>
 </MudDataGrid>
         }
     </MudItem>
@@ -252,7 +266,8 @@
 
 @code {
     private string _activeTable = "block2";
-    
+    private string _searchString = "";
+    private string _searchBlock1 = "";
     private MudDataGrid<OverflyBlock2Item> _block2Grid;
     private MudDataGrid<OverflyBlock1Item> _block1Grid;
     private List<OverflyBlock2Item> _block2Items = new();
@@ -261,75 +276,116 @@
     private List<SelectItem> _statuses = new();
     private List<SelectItem> _addresses = new();
     private List<SelectItem> _violations = new();
-    
+
     private bool _showCustomAddress = false;
     private OverflyBlock2Item? _currentEditingItem;
 
     private bool _showCustomViolation = false;
-private OverflyBlock1Item? _currentEditingBlock1Item;
+    private OverflyBlock1Item? _currentEditingBlock1Item;
     private InputFile? _fileInput;
-private ElementReference _fileInputElement;
-private async Task OpenFilePicker()
-{
-    
-    await JSRuntime.InvokeVoidAsync("clickFileInput", _fileInput!.Element);
-}
-
-
-private async Task HandleBlock2Upload(IBrowserFile file)
-{
-    try
+    private ElementReference _fileInputElement;
+    private async Task OpenFilePicker()
     {
-        using var content = new MultipartFormDataContent();
-        var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
-        var fileContent = new StreamContent(stream);
-        content.Add(fileContent, "file", file.Name);
 
-        var response = await api.PostFormAsync<ImportResult>("api/overfly/upload-block2", content);
-        
-        if (response != null)
+        await JSRuntime.InvokeVoidAsync("clickFileInput", _fileInput!.Element);
+    }
+
+    private Func<OverflyBlock2Item, bool> _quickFilterBlock2 => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        if (x.DistrictName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (x.StatusName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (x.AddressName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (x.Id.ToString().Contains(_searchString))
+            return true;
+
+        if (x.Square?.ToString()?.Contains(_searchString) == true)
+            return true;
+
+        return false;
+    };
+
+    private Func<OverflyBlock1Item, bool> _quickFilterBlock1 => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchBlock1))
+            return true;
+
+        if (x.DistrictName?.Contains(_searchBlock1, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (x.ViolationName?.Contains(_searchBlock1, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (x.Id.ToString().Contains(_searchBlock1))
+            return true;
+
+        if (x.QuantityNewViolation?.ToString()?.Contains(_searchBlock1) == true)
+            return true;
+
+        return false;
+    };
+    private async Task HandleBlock2Upload(IBrowserFile file)
+    {
+        try
         {
-            Snackbar.Add(response.Message, Severity.Success);
+            using var content = new MultipartFormDataContent();
+            var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            var fileContent = new StreamContent(stream);
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await api.PostFormAsync<ImportResult>("api/overfly/upload-block2", content);
+
+            if (response != null)
+            {
+                Snackbar.Add(response.Message, Severity.Success);
+            }
+
+            await LoadBlock2();
         }
-
-        await LoadBlock2();
-    }
-    catch (Exception ex)
-    {
-        Snackbar.Add($"Ошибка загрузки: {ex.Message}", Severity.Error);
-    }
-}
-
-
-private async Task HandleBlock1Upload(IBrowserFile file)
-{
-    try
-    {
-        using var content = new MultipartFormDataContent();
-        var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
-        var fileContent = new StreamContent(stream);
-        content.Add(fileContent, "file", file.Name);
-
-        var response = await api.PostFormAsync<ImportResult>("api/overfly/upload-block1", content);
-        
-        if (response != null)
+        catch (Exception ex)
         {
-            Snackbar.Add(response.Message, Severity.Success);
+            Snackbar.Add($"Ошибка загрузки: {ex.Message}", Severity.Error);
         }
-
-        await LoadBlock1();
     }
-    catch (Exception ex)
+
+
+    private async Task HandleBlock1Upload(IBrowserFile file)
     {
-        Snackbar.Add($"Ошибка загрузки: {ex.Message}", Severity.Error);
-    }
-}
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            var fileContent = new StreamContent(stream);
+            content.Add(fileContent, "file", file.Name);
 
-public class ImportResult
-{
-    public string Message { get; set; } = "";
-    public List<string>? Errors { get; set; }
-}
+            var response = await api.PostFormAsync<ImportResult>("api/overfly/upload-block1", content);
+
+            if (response != null)
+            {
+                Snackbar.Add(response.Message, Severity.Success);
+            }
+
+            await LoadBlock1();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка загрузки: {ex.Message}", Severity.Error);
+        }
+    }
+
+    public class ImportResult
+    {
+        public string Message { get; set; } = "";
+        public List<string>? Errors { get; set; }
+    }
     private void SwitchTable(string table)
     {
         _activeTable = table;
@@ -343,16 +399,17 @@ public class ImportResult
         await LoadBlock1();
     }
     private async Task AddNewBlock1()
-{
-    _showCustomViolation = false;
-    _currentEditingBlock1Item = null;
-    
-    var newItem = new OverflyBlock1Item();
-    _block1Items.Insert(0, newItem);
-    StateHasChanged();
-    await Task.Delay(50);
-    await _block1Grid.SetEditingItemAsync(newItem);
-}
+    {
+        _showCustomViolation = false;
+        _currentEditingBlock1Item = null;
+
+        var newItem = new OverflyBlock1Item();
+        _block1Items.Insert(0, newItem);
+
+        StateHasChanged();
+        await Task.Delay(50);
+        await _block1Grid.SetEditingItemAsync(newItem);
+    }
 
     private async Task LoadDictionaries()
     {
@@ -362,9 +419,9 @@ public class ImportResult
             var statusesTask = api.GetAsync<List<SelectItem>>("api/overfly/statuses");
             var addressesTask = api.GetAsync<List<SelectItem>>("api/overfly/addresses");
             var violationsTask = api.GetAsync<List<SelectItem>>("api/overfly/violations");
-            
+
             await Task.WhenAll(districtsTask, statusesTask, addressesTask, violationsTask);
-            
+
             _districts = districtsTask.Result ?? new();
             _statuses = statusesTask.Result ?? new();
             _addresses = addressesTask.Result ?? new();
@@ -380,7 +437,7 @@ public class ImportResult
     {
         if (value == -1)
         {
-            
+
             _showCustomAddress = true;
             item.IdAddress = null;
             item.AddressName = "";
@@ -388,7 +445,7 @@ public class ImportResult
         else
         {
             _showCustomAddress = false;
-            
+
             var address = _addresses.FirstOrDefault(a => a.Id == value);
             item.AddressName = address?.Name ?? "";
         }
@@ -420,12 +477,12 @@ public class ImportResult
         }
     }
 
-    
+
     private async Task AddNewBlock2()
     {
         _showCustomAddress = false;
         _currentEditingItem = null;
-        
+
         var newItem = new OverflyBlock2Item();
         _block2Items.Insert(0, newItem);
         StateHasChanged();
@@ -437,8 +494,8 @@ public class ImportResult
     {
         _currentEditingItem = item;
         _showCustomAddress = false;
-        
-        
+
+
         if (!string.IsNullOrEmpty(item.AddressName) && item.IdAddress == null)
         {
             _showCustomAddress = true;
@@ -449,7 +506,7 @@ public class ImportResult
     {
         _showCustomAddress = false;
         _currentEditingItem = null;
-        
+
         if (item.Id == 0)
         {
             _block2Items.Remove(item);
@@ -457,77 +514,79 @@ public class ImportResult
         }
     }
 
-   private async Task<DataGridEditFormAction> CommittedBlock2Changes(OverflyBlock2Item item)
-{
-    try
+    private async Task<DataGridEditFormAction> CommittedBlock2Changes(OverflyBlock2Item item)
     {
-        if (item.IdAddress == -1)
+        try
         {
-            item.IdAddress = null;
-            
-            if (string.IsNullOrWhiteSpace(item.AddressName))
+            if (item.IdAddress == -1)
             {
-                _showCustomAddress = true;
-                Snackbar.Add("Введите адрес", Severity.Warning);
+                item.IdAddress = null;
+
+                if (string.IsNullOrWhiteSpace(item.AddressName))
+                {
+                    _showCustomAddress = true;
+                    Snackbar.Add("Введите адрес", Severity.Warning);
+                    return DataGridEditFormAction.KeepOpen;
+                }
+            }
+            else if (item.IdAddress.HasValue && item.IdAddress.Value > 0)
+            {
+                var address = _addresses.FirstOrDefault(a => a.Id == item.IdAddress.Value);
+                item.AddressName = address?.Name ?? "";
+            }
+
+            if (!item.IdAddress.HasValue && string.IsNullOrWhiteSpace(item.AddressName))
+            {
+                Snackbar.Add("Укажите адрес", Severity.Warning);
                 return DataGridEditFormAction.KeepOpen;
             }
-        }
-        else if (item.IdAddress.HasValue && item.IdAddress.Value > 0)
-        {
-            var address = _addresses.FirstOrDefault(a => a.Id == item.IdAddress.Value);
-            item.AddressName = address?.Name ?? "";
-        }
-        
-        if (!item.IdAddress.HasValue && string.IsNullOrWhiteSpace(item.AddressName))
-        {
-            Snackbar.Add("Укажите адрес", Severity.Warning);
-            return DataGridEditFormAction.KeepOpen;
-        }
-        
-        if (item.Id == 0)
-        {
-            var request = new OverflyBlock2Request
+
+            if (item.Id == 0)
+            {
+                var userId = await JSRuntime.GetUserId();
+                var request = new OverflyBlock2Request
             {
                 IdStatus = item.IdStatus,
                 IdAddress = item.IdAddress,
                 AddressName = item.AddressName,
                 IdDistrict = item.IdDistrict,
                 Square = item.Square,
-                DateGetMaterials = item.DateGetMaterials
+                DateGetMaterials = item.DateGetMaterials,
+                UserId = userId
             };
-            
-            var response = await api.PostAsync<OverflyBlock2Item>("api/overfly/block-2", request);
-            
-            if (response != null)
+
+                var response = await api.PostAsync<OverflyBlock2Item>("api/overfly/block-2", request);
+
+                if (response != null)
+                {
+                    Snackbar.Add("Запись добавлена", Severity.Success);
+                    _showCustomAddress = false;
+                    _currentEditingItem = null;
+
+
+                    await LoadBlock2();
+                    StateHasChanged();
+                }
+            }
+            else
             {
-                Snackbar.Add("Запись добавлена", Severity.Success);
+                await api.PutAsync<object>($"api/overfly/block-2/{item.Id}", item);
+                Snackbar.Add("Запись обновлена", Severity.Success);
                 _showCustomAddress = false;
                 _currentEditingItem = null;
-                
-               
+
+
                 await LoadBlock2();
                 StateHasChanged();
             }
         }
-        else
+        catch (Exception ex)
         {
-            await api.PutAsync<object>($"api/overfly/block-2/{item.Id}", item);
-            Snackbar.Add("Запись обновлена", Severity.Success);
-            _showCustomAddress = false;
-            _currentEditingItem = null;
-            
-           
-            await LoadBlock2();
-            StateHasChanged();
+            Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
         }
+
+        return DataGridEditFormAction.Close;
     }
-    catch (Exception ex)
-    {
-        Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
-    }
-    
-    return DataGridEditFormAction.Close;
-}
 
     private async void DeleteBlock2(OverflyBlock2Item item)
     {
@@ -547,71 +606,73 @@ public class ImportResult
         }
     }
 
-    
-   
 
-   private void StartedEditingBlock1(OverflyBlock1Item item) 
-{
-    _currentEditingBlock1Item = item;
-    _showCustomViolation = false;
-    
 
-    if (!string.IsNullOrEmpty(item.ViolationName) && item.IdViolation == null)
+
+    private void StartedEditingBlock1(OverflyBlock1Item item) 
     {
-        _showCustomViolation = true;
+        _currentEditingBlock1Item = item;
+        _showCustomViolation = false;
+
+
+        if (!string.IsNullOrEmpty(item.ViolationName) && item.IdViolation == null)
+        {
+            _showCustomViolation = true;
+        }
     }
-}
 
-private void CanceledEditingBlock1(OverflyBlock1Item item)
-{
-    _showCustomViolation = false;
-    _currentEditingBlock1Item = null;
-    
-    if (item.Id == 0)
+    private void CanceledEditingBlock1(OverflyBlock1Item item)
     {
-        _block1Items.Remove(item);
-        StateHasChanged();
-    }
-}
+        _showCustomViolation = false;
+        _currentEditingBlock1Item = null;
 
-
-  private async Task<DataGridEditFormAction> CommittedBlock1Changes(OverflyBlock1Item item)
-{
-    try
-    {
-        if (item.IdViolation == -1)
-        {
-            item.IdViolation = null;
-            
-            if (string.IsNullOrWhiteSpace(item.ViolationName))
-            {
-                _showCustomViolation = true;
-                Snackbar.Add("Введите нарушение", Severity.Warning);
-                return DataGridEditFormAction.KeepOpen;
-            }
-        }
-        else if (item.IdViolation.HasValue && item.IdViolation.Value > 0)
-        {
-            var violation = _violations.FirstOrDefault(v => v.Id == item.IdViolation.Value);
-            item.ViolationName = violation?.Name ?? "";
-        }
-        
-        if (!item.IdViolation.HasValue && string.IsNullOrWhiteSpace(item.ViolationName))
-        {
-            Snackbar.Add("Укажите нарушение", Severity.Warning);
-            return DataGridEditFormAction.KeepOpen;
-        }
-        
         if (item.Id == 0)
         {
-            var request = new OverflyBlock1Request
+            _block1Items.Remove(item);
+            StateHasChanged();
+        }
+    }
+
+
+    private async Task<DataGridEditFormAction> CommittedBlock1Changes(OverflyBlock1Item item)
+    {
+        try
+        {
+            if (item.IdViolation == -1)
+            {
+                item.IdViolation = null;
+
+                if (string.IsNullOrWhiteSpace(item.ViolationName))
+                {
+                    _showCustomViolation = true;
+                    Snackbar.Add("Введите нарушение", Severity.Warning);
+                    return DataGridEditFormAction.KeepOpen;
+                }
+            }
+            else if (item.IdViolation.HasValue && item.IdViolation.Value > 0)
+            {
+                var violation = _violations.FirstOrDefault(v => v.Id == item.IdViolation.Value);
+                item.ViolationName = violation?.Name ?? "";
+            }
+
+            if (!item.IdViolation.HasValue && string.IsNullOrWhiteSpace(item.ViolationName))
+            {
+                Snackbar.Add("Укажите нарушение", Severity.Warning);
+                return DataGridEditFormAction.KeepOpen;
+            }
+
+            if (item.Id == 0)
+            {
+                var userId = await JSRuntime.GetUserId();
+                var request = new OverflyBlock1Request
             {
                 IdDistrict = item.IdDistrict,
                 IdAddress = item.IdAddress,
                 QuantityNewViolation = item.QuantityNewViolation,
                 IdViolation = item.IdViolation,
                 ViolationName = item.ViolationName,
-                DateDetection = item.DateDetection
+                DateDetection = item.DateDetection,
+                UserId = userId
             };
             
             var response = await api.PostAsync<OverflyBlock1Item>("api/overfly/block-1", request);
@@ -653,6 +714,7 @@ private void CanceledEditingBlock1(OverflyBlock1Item item)
         {
             if (item.Id > 0)
             {
+                var userId = await JSRuntime.GetUserId();
                 await api.DeleteAsync($"api/overfly/block-1/{item.Id}");
             }
             _block1Items.Remove(item);

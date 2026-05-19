@@ -72,6 +72,7 @@
                     <PropertyColumn Property="x => x.ObjectAWeek" Title="Количество нарушений" />
                     <PropertyColumn Property="x => x.NewViolations" Title="Новые нарушения" />
                     <PropertyColumn Property="x => x.OldViolations" Title="Ранее учтенные" />
+                    <PropertyColumn Property="x => x.CreatedByUser" Title="Пользователь" />
                     <TemplateColumn Title="Действия" CellClass="d-flex justify-center">
                         <CellTemplate>
                             <div class="d-flex gap-1">
@@ -631,7 +632,8 @@ public class ExportResult
             {
                 _newTask.RemainedPerimeter = _newTask.AllPerimeter - _newTask.CompletePerimeter;
             }
-
+            var userId = await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('userId')");
+            _newTask.UserId = userId?.Trim('"', '\'');
             var result = await api.PostAsync<AddWorkProgressResult>("api/form", _newTask);
             
             if (result != null)
@@ -708,7 +710,7 @@ public class ExportResult
                         OldViolations = v.OldViolations
                     }).ToList()
                 };
-
+                updateRequest.UserId = await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('userId')");
                 await api.PutAsync<object>($"api/form/{_selectedWorkProgressId}", updateRequest);
                 
                 Snackbar.Add("Нарушение добавлено", Severity.Success);

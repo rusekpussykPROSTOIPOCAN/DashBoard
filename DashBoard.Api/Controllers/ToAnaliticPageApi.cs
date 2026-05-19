@@ -1,13 +1,15 @@
-﻿using DashBoard.Lib.Data;
+﻿using DashBoard.Api.Services;
+using DashBoard.Lib.Data;
 using DashBoard.Lib.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
-using DashBoard.Api.Services;
 namespace DashBoard.Api.Controllers
 {
     [ApiController]
     [Route("api")]
+    
     public class ToAnaliticPageApi : BaseController
     {
         public ToAnaliticPageApi(dashboardContext dashboard) : base(dashboard)
@@ -22,6 +24,7 @@ namespace DashBoard.Api.Controllers
             {
                 var query = _dashboard.work_progresses
                     .Include(wp => wp.id_sourseNavigation)
+                     .Include(wp => wp.CreatedByUser)
                     .Include(wp => wp.work_progress_violations)
                         .ThenInclude(v => v.id_articleNavigation)
                     .Where(wp => wp.created_at.HasValue)
@@ -94,6 +97,7 @@ namespace DashBoard.Api.Controllers
             {
                 var query = _dashboard.work_progresses
                     .Include(wp => wp.id_sourseNavigation)
+                     .Include(wp => wp.CreatedByUser)
                     .Include(wp => wp.work_progress_violations)
                         .ThenInclude(v => v.id_articleNavigation)
                     .Where(wp => wp.created_at.HasValue)
@@ -143,16 +147,17 @@ namespace DashBoard.Api.Controllers
                     .ToList();
 
                 var violations = workProgresses
-                    .SelectMany(wp => wp.work_progress_violations, (wp, v) => new ViolationDto
-                    {
-                        WorkProgressId = wp.id,
-                        ArticleId = v.id_article ?? 0,
-                        Article = v.id_articleNavigation?.article1 ?? "Неизвестно",
-                        ObjectAWeek = v.object_a_week ?? 0,
-                        NewViolations = v.new_violations ?? 0,
-                        OldViolations = v.old_violations ?? 0
-                    })
-                    .ToList();
+    .SelectMany(wp => wp.work_progress_violations, (wp, v) => new ViolationDto
+    {
+        WorkProgressId = wp.id,
+        ArticleId = v.id_article ?? 0,
+        Article = v.id_articleNavigation?.article1 ?? "Неизвестно",
+        ObjectAWeek = v.object_a_week ?? 0,
+        NewViolations = v.new_violations ?? 0,
+        OldViolations = v.old_violations ?? 0,
+        CreatedByUser = wp.CreatedByUser?.FullName ?? "Неизвестно" 
+    })
+    .ToList();
 
                 var result = new AnaliticPageDTO
                 {

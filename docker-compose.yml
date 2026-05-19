@@ -24,6 +24,7 @@ services:
       dockerfile: DashBoard.Api/Dockerfile
     container_name: dashboard-api
     environment:
+      - FrontendUrl=http://localhost:5000
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=dashboard;Username=postgres;Password=1111
     ports:
       - "8080:8080"

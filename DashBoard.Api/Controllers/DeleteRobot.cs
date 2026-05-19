@@ -23,7 +23,7 @@ namespace DashBoard.Api.Controllers
                 if (robot == null)
                     return NotFound($"Робот с ID {id} не найден");
 
-                // Деактивируем аналитики одним запросом (без загрузки в память)
+                
                 await _dashboard.robots_analitics
                     .Where(a => a.idrobots == id)
                     .ExecuteUpdateAsync(s => s.SetProperty(a => a.isactive, false));

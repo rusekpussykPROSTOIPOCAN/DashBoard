@@ -2,6 +2,7 @@
 @page "/EditRobot/{RobotId:int}"
 @inject Services.ApiService api
 @inject ISnackbar Snackbar
+@inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 
 <PageTitle>@(isEditMode ? Departs.EditRobot : Departs.RobotForm)</PageTitle>
@@ -352,9 +353,10 @@
             {
                 Robot = addRobots,
                 
-                Periods = periods
+                Periods = periods,
+                
             };
-
+            request.UserId = await JSRuntime.GetUserId();
             var response = await api.PostAsync<object>("api/robot-add", request);
             Snackbar.Add("Робот успешно создан", Severity.Success);
             
@@ -384,7 +386,7 @@
                 Robot = addRobots,
                 Periods = periods
             };
-
+            request.UserId = await JSRuntime.GetUserId();
             await api.PutAsync<object>($"api/robot-add/robot-update/{RobotId}", request);
             Snackbar.Add("Робот успешно обновлен", Severity.Success);
             

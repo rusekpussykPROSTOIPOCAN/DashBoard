@@ -20,6 +20,8 @@ namespace DashBoard.Lib.DTOs
     {
         public int RobotId { get; set; }
         public AddRobotDTO Robot { get; set; }
+        public string? UserId { get; set; }
+
         public List<PeriodGroup> Periods { get; set; }
     }
     public class DetailItem
@@ -47,6 +49,8 @@ namespace DashBoard.Lib.DTOs
         public AddRobotDTO Robot { get; set; } = new();
 
         public List<PeriodGroup> Periods { get; set; } = new();
+
+        public string? UserId { get; set; }
     }
 
 

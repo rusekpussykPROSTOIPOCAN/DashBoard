@@ -1,0 +1,186 @@
+﻿@page "/events"
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@using System.Text
+@using System.Text.Json
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudText Typo="Typo.h4" Class="mb-4">Лента событий</MudText>
+
+   
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" md="4">
+            <MudTextField @bind-Value="_search"
+                          Placeholder="Поиск..."
+                          Adornment="Adornment.Start"
+                          Immediate="true"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          OnKeyUp="OnSearchChanged" />
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudDatePicker @bind-Date="_filterDate"
+                           Label="Дата"
+                           Clearable="true" />
+        </MudItem>
+        <MudItem xs="12" md="2">
+            <MudButton Variant="Variant.Filled" OnClick="ApplyFilters" Size="Size.Small">
+                Показать
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" md="2">
+            <MudButton Variant="Variant.Outlined" OnClick="ClearFilters" Size="Size.Small">
+                Сбросить
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+
+    <MudTable Items="@_filteredEvents" Hover="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Пользователь</MudTh>
+            <MudTh>Действие</MudTh>
+            <MudTh>Описание</MudTh>
+            <MudTh>Дата</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.UserName</MudTd>
+            <MudTd>@context.Action</MudTd>
+            <MudTd>@context.Description</MudTd>
+            <MudTd>@context.CreatedAt.ToString("dd.MM.yyyy HH:mm")</MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="@_pageSizeOptions" />
+        </PagerContent>
+    </MudTable>
+
+    <MudFab Color="Color.Primary" Icon="@Icons.Material.Filled.Add"
+            OnClick="OpenAddEventDialog"
+            Style="position: fixed; bottom: 20px; right: 20px;" />
+
+    
+    <MudDialog @bind-Visible="_dialogVisible" Title="Добавить событие">
+        <DialogContent>
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="_newEventTitle" Label="Название" />
+                <MudTextField @bind-Value="_newEventDescription" Label="Описание" Lines="3" />
+                <MudDatePicker @bind-Date="_newEventDate" Label="Дата" />
+            </MudStack>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="() => _dialogVisible = false">Отмена</MudButton>
+            <MudButton Color="Color.Primary" OnClick="SaveEvent">Добавить</MudButton>
+        </DialogActions>
+    </MudDialog>
+</MudContainer>
+
+@code {
+    private List<EventLogItem> _events = new();
+    private List<EventLogItem> _filteredEvents = new();
+    private string _search = "";
+    private DateTime? _filterDate;
+    private bool _dialogVisible;
+    private string _newEventTitle = "";
+    private string _newEventDescription = "";
+    private DateTime? _newEventDate = DateTime.Today;
+    private int[] _pageSizeOptions = { 10, 25, 50 };
+    private async Task OnFilterDateChanged()
+    {
+        ApplyFilters();
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEvents();
+    }
+
+    private async Task LoadEvents()
+    {
+        var result = await Http.GetFromJsonAsync<List<EventLogItem>>("http://api:8080/api/events");
+        _events = result ?? new();
+        ApplyFilters();
+    }
+
+    private string _filterDateInput = "";
+
+    private void ApplyFilters()
+    {
+        var query = _events.AsEnumerable();
+
+     
+        if (!string.IsNullOrWhiteSpace(_search))
+        {
+            var s = _search.ToLower();
+            query = query.Where(e =>
+                (e.UserName?.ToLower().Contains(s) == true) ||
+                (e.Action?.ToLower().Contains(s) == true) ||
+                (e.Description?.ToLower().Contains(s) == true));
+        }
+
+       
+        if (_filterDate.HasValue)
+        {
+            query = query.Where(e => e.CreatedAt.Date == _filterDate.Value.Date);
+        }
+
+        _filteredEvents = query.OrderByDescending(e => e.CreatedAt).ToList();
+        StateHasChanged();
+    }
+
+    private void OnSearchChanged()
+    {
+        ApplyFilters();
+    }
+
+    private void OnFilterDateChanged(DateTime? date)
+    {
+        _filterDate = date;
+        ApplyFilters();
+    }
+
+    private void ClearFilters()
+    {
+        _search = "";
+        _filterDate = null;
+        _filteredEvents = _events.OrderByDescending(e => e.CreatedAt).ToList();
+        StateHasChanged();
+    }
+
+    private void OpenAddEventDialog()
+    {
+        _newEventTitle = "";
+        _newEventDescription = "";
+        _newEventDate = DateTime.Today;
+        _dialogVisible = true;
+    }
+
+    private async Task SaveEvent()
+    {
+        try
+        {
+            var userId = await JSRuntime.GetUserId();
+            var request = new
+            {
+                userId = userId,
+                title = _newEventTitle,
+                description = _newEventDescription,
+                eventDate = _newEventDate ?? DateTime.Today
+            };
+            var content = new StringContent(
+                JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
+
+            await Http.PostAsync("http://api:8080/api/calendar/events", content);
+            _dialogVisible = false;
+            await LoadEvents();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    public class EventLogItem
+    {
+        public string UserName { get; set; } = "";
+        public string Action { get; set; } = "";
+        public string Description { get; set; } = "";
+        public DateTime CreatedAt { get; set; }
+    }
+}

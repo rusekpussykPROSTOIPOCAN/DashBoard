@@ -63,7 +63,7 @@ namespace DashBoard.Api.Controllers
 
                 await _dashboard.SaveChangesAsync();
                 await transaction.CommitAsync();
-
+                await LogEvent("Создание робота", $"Новый робот {robot.name} - {robot.short_name} добавлен", request.UserId);
                 return Ok(new { robotId = robot.id, message = "Робот создан" });
             }
             catch (Exception ex)
@@ -237,7 +237,7 @@ namespace DashBoard.Api.Controllers
 
                 await _dashboard.SaveChangesAsync();
                 await transaction.CommitAsync();
-
+                await LogEvent("Обновление робота", $"Обновленный робот {robot.name} - {robot.short_name}", request.UserId);
                 return Ok(new { robotId = robot.id, message = "робот обновлен" });
             }
             catch (Exception ex)

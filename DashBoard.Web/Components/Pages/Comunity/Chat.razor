@@ -1,0 +1,120 @@
+﻿@page "/chat"
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+@using System.Threading
+@implements IDisposable
+<MudContainer MaxWidth="MaxWidth.Medium">
+    <MudText Typo="Typo.h4" Class="mb-4">Чат</MudText>
+
+    <MudCard Class="pa-3" Style="height: 60vh; display: flex; flex-direction: column;">
+        <div style="overflow-y: auto; flex-grow: 1; padding: 8px;" id="chat-messages">
+            @foreach (var msg in _messages)
+            {
+                <div class="mb-2">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@msg.Time @msg.User</MudText>
+                    <MudText Typo="Typo.body2">@msg.Text</MudText>
+                </div>
+            }
+        </div>
+        <div style="display: flex; gap: 8px; padding: 8px;">
+            <MudTextField @bind-Value="_newMessage"
+                          Label="Сообщение"
+                          OnKeyUp="HandleKeyDown"
+                          Style="flex-grow: 1;" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SendMessage">
+                Отправить
+            </MudButton>
+        </div>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private List<ChatMessage> _messages = new();
+    private string _newMessage = "";
+    private Timer? _timer;
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_newMessage))
+        {
+            await SendMessage();
+        }
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadHistory();
+
+        
+        _timer = new Timer(async _ =>
+        {
+            await LoadHistory();
+            await InvokeAsync(StateHasChanged);
+        }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+    }
+
+    private async Task LoadHistory()
+    {
+        try
+        {
+            var response = await Http.GetAsync("http://api:8080/api/chat/history");
+            if (response.IsSuccessStatusCode)
+            {
+                var history = await response.Content.ReadFromJsonAsync<List<ChatHistoryItem>>();
+                _messages = history?.Select(h => new ChatMessage
+                {
+                    User = h.UserName,
+                    Text = h.Message,
+                    Time = h.CreatedAt.ToString("HH:mm")
+                }).ToList() ?? new();
+
+                StateHasChanged();
+            }
+            await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('lastChatCheck', '{DateTime.UtcNow:o}')");
+        }
+        catch { }
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(_newMessage)) return;
+
+        var userName = (await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('userName')"))?.Trim('"', '\'') ?? "Гость";
+
+       
+        _messages.Add(new ChatMessage
+        {
+            User = userName,
+            Text = _newMessage,
+            Time = DateTime.Now.ToString("HH:mm")
+        });
+
+        var userId = (await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('userId')"))?.Trim('"', '\'');
+        var data = new { userId, userName, message = _newMessage };
+        var content = new StringContent(
+            System.Text.Json.JsonSerializer.Serialize(data),
+            System.Text.Encoding.UTF8, "application/json");
+
+        _ = Http.PostAsync("http://api:8080/api/chat/send", content);
+
+        _newMessage = "";
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+    }
+
+    public class ChatMessage
+    {
+        public string User { get; set; } = "";
+        public string Text { get; set; } = "";
+        public string Time { get; set; } = "";
+    }
+
+    public class ChatHistoryItem
+    {
+        public string UserName { get; set; } = "";
+        public string Message { get; set; } = "";
+        public DateTime CreatedAt { get; set; }
+    }
+}
