@@ -1,13 +1,16 @@
-﻿<MudButton Variant="Variant.Filled" OnClick="ToggleFilter">
+﻿@inject Services.ApiService api
+<MudButton Variant="Variant.Filled" OnClick="ToggleFilter">
     Выбрать период
 </MudButton>
 <MudPopover Open="_open" AnchorOrigin="Origin.CenterCenter">
 <MudPaper Class="pa-4">
 
         <MudSelect T="int?" Label="@ResForBodyPage.Year" @bind-Value="_year">
-        <MudSelectItem T="int?" Value="@((int?)null)">Все</MudSelectItem>
-        <MudSelectItem T="int?" Value="2026">2026</MudSelectItem>
-        <MudSelectItem T="int?" Value="2025">2025</MudSelectItem>
+            <MudSelectItem T="int?" Value="@((int?)null)">Все</MudSelectItem>
+            @foreach (var year in _years)
+            {
+                <MudSelectItem T="int?" Value="@year">@year</MudSelectItem>
+            }
         </MudSelect>
         <MudSelect Disabled="@(_month.HasValue)" T="int?" Label="@ResForBodyPage.Qartal" @bind-Value="_quarter">
             <MudSelectItem T="int?" Value="@((int?)null)">Все</MudSelectItem>
@@ -47,10 +50,11 @@
     {
         _open = !_open;
     }
-   
+
     private int? _year;
     private int? _quarter;
     private int? _month;
+    private List<int> _years = new();
     public class Periods
     {
         public int? Year { get; set; }
@@ -58,6 +62,22 @@
         public int? Month { get; set; }
     }
 
+    protected override  async Task OnInitializedAsync()
+    {
+        await LoadYears();
+    }
+    private async Task LoadYears()
+    {
+        try
+        {
+            var result = await api.GetAsync<List<int>>("api/overfly/years");
+            _years = result ?? new List<int> { 2025, 2026 };
+        }
+        catch
+        {
+            _years = new List<int> { 2025, 2026 };
+        }
+    }
     [Parameter]
     public EventCallback<Periods> OnChange{ get; set; }
 

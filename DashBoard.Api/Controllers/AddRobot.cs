@@ -124,12 +124,66 @@ namespace DashBoard.Api.Controllers
                         var json = JsonSerializer.Serialize(blocks);
 
                         var existing = await _dashboard.robots_analitics
-                            .FirstOrDefaultAsync(ra => ra.idrobots == robot.id && ra.datestatistic == date);
+    .FirstOrDefaultAsync(ra => ra.idrobots == robot.id
+        && ra.datestatistic.Year == date.Year
+        && ra.datestatistic.Month == date.Month);
 
                         if (existing != null)
                         {
-                            existing.data_analize = json;
-                            existing.count_application = countApplications;
+                         
+                            var existingData = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(existing.data_analize ?? "{}");
+
+                            foreach (var block in blocks)
+                            {
+                                if (existingData.ContainsKey(block.Key))
+                                {
+                                    
+                                    var existingBlock = existingData[block.Key];
+                                    var newBlockJson = JsonSerializer.Serialize(block.Value);
+                                    var newBlockDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(newBlockJson);
+
+
+                                    var existingDetails = new Dictionary<string, int>();
+                                    if (existingBlock.TryGetProperty("детали", out var det))
+                                    {
+                                        foreach (var d in det.EnumerateObject())
+                                            existingDetails[d.Name] = d.Value.GetInt32();
+                                    }
+
+                                    var newDetails = new Dictionary<string, int>();
+                                    if (newBlockDict != null && newBlockDict.TryGetValue("детали", out var detElem))
+                                    {
+                                        foreach (var d in detElem.EnumerateObject())
+                                            newDetails[d.Name] = d.Value.GetInt32();
+                                    }
+
+                                    
+                                    foreach (var detail in newDetails)
+                                    {
+                                        if (existingDetails.ContainsKey(detail.Key))
+                                            existingDetails[detail.Key] += detail.Value;
+                                        else
+                                            existingDetails[detail.Key] = detail.Value;
+                                    }
+
+                                    int newSum = existingDetails.Values.Sum();
+
+
+                                    
+
+                                   
+                                    blocks[block.Key] = new
+                                    {
+                                        type = existingDetails.Count > 5 ? "Bar" : "Pie",
+                                        сумма = newSum,
+                                        детали = existingDetails
+                                    };
+                                }
+                               
+                            }
+
+                            existing.data_analize = JsonSerializer.Serialize(blocks);
+                            existing.count_application = (existing.count_application ?? 0) + (countApplications ?? 0);
                         }
                         else
                         {
@@ -137,7 +191,7 @@ namespace DashBoard.Api.Controllers
                             {
                                 idrobots = robot.id,
                                 datestatistic = date,
-                                data_analize = json,
+                                data_analize = JsonSerializer.Serialize(blocks),
                                 isactive = true,
                                 count_application = countApplications
                             });

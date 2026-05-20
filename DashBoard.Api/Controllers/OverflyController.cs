@@ -13,12 +13,24 @@ namespace DashBoard.Api.Controllers
 {
     [ApiController]
     [Route("api/overfly")]
+
     public class OverflyController : BaseController
     {
         public OverflyController(dashboardContext dashboard) : base(dashboard)
         {
         }
+        [HttpGet("years")]
+        public async Task<IActionResult> GetYears()
+        {
+            var years = await _dashboard.robots_analitics
+                .Where(ra => ra.datestatistic != default)
+                .Select(ra => ra.datestatistic.Year)
+                .Distinct()
+                .OrderByDescending(y => y)
+                .ToListAsync();
 
+            return Ok(years);
+        }
         [HttpPost("upload-block2")]
         public async Task<IActionResult> UploadBlock2(
     IFormFile file,

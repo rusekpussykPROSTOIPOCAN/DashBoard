@@ -10,6 +10,9 @@ public class CalendarController : BaseController
 {
     public CalendarController(dashboardContext dashboard) : base(dashboard) { }
 
+
+
+
     [HttpPost("events")]
     public async Task<IActionResult> AddEvent([FromBody] AddCalendarEventRequest request)
     {
