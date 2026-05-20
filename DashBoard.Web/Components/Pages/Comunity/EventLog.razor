@@ -190,9 +190,14 @@
         try
         {
             var userId = await JSRuntime.GetUserId();
-            var request = new { userId, title = _newEventTitle, description = _newEventDescription, eventDate = _newEventDate ?? DateTime.Today };
-            var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
-            await api.PostAsync<object>("api/calendar/events", content);
+            var request = new
+            {
+                userId = userId,
+                title = _newEventTitle,
+                description = _newEventDescription,
+                eventDate = (_newEventDate ?? DateTime.Today).ToString("yyyy-MM-dd")  
+            };
+            await api.PostAsync<object>("api/calendar/events", request);
             _dialogVisible = false;
             await LoadEvents();
         }

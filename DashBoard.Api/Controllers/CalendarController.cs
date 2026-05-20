@@ -25,12 +25,16 @@ public class CalendarController : BaseController
         if (!string.IsNullOrEmpty(request.Description))
             description += $": {request.Description}";
 
+        DateTime eventDate;
+        if (!DateTime.TryParse(request.EventDate, out eventDate))
+            eventDate = DateTime.UtcNow;
+
         var evt = new UserEvent
         {
             UserId = request.UserId,
             Title = request.Title,
-            Description = description, 
-            EventDate = DateTime.SpecifyKind(request.EventDate, DateTimeKind.Utc),
+            Description = $"{request.Title} : {request.Description}",
+            EventDate = DateTime.SpecifyKind(eventDate, DateTimeKind.Utc),
             Color = request.Color ?? "#1976d2",
             CreatedAt = DateTime.UtcNow
         };
@@ -62,6 +66,6 @@ public class AddCalendarEventRequest
     public string? UserId { get; set; }
     public string Title { get; set; } = "";
     public string? Description { get; set; }
-    public DateTime EventDate { get; set; }
+    public string EventDate { get; set; } = "";  
     public string? Color { get; set; }
 }

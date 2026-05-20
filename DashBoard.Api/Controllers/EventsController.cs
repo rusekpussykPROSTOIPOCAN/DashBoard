@@ -31,9 +31,9 @@ namespace DashBoard.Api.Controllers
             var userEvents = await _dashboard.Set<UserEvent>()
      .Select(e => new EventItemDto
      {
-         UserName = "Пользователь",
+         UserName = _dashboard.Users.Where(u => u.Id == e.UserId).Select(u => u.FullName).FirstOrDefault() ?? "Пользователь",
          Action = "Событие",
-         Description = e.Description, 
+         Description = e.Description,
          CreatedAt = e.EventDate
      })
      .ToListAsync();
@@ -59,12 +59,16 @@ namespace DashBoard.Api.Controllers
                 userName = user?.FullName ?? "Пользователь";
             }
 
+            DateTime eventDate;
+            if (!DateTime.TryParse(request.EventDate, out eventDate))
+                eventDate = DateTime.UtcNow;
+
             var evt = new UserEvent
             {
                 UserId = request.UserId,
                 Title = request.Title,
-                Description = $"[{userName}] {request.Title}: {request.Description}",
-                EventDate = DateTime.SpecifyKind(request.EventDate, DateTimeKind.Utc),
+                Description = $"[{request.Title}: {request.Description}]",
+                EventDate = DateTime.SpecifyKind(eventDate, DateTimeKind.Utc),
                 Color = request.Color ?? "#1976d2",
                 CreatedAt = DateTime.UtcNow
             };
