@@ -8,8 +8,50 @@ using Microsoft.EntityFrameworkCore;
 [Route("api/chat")]
 public class ChatController : BaseController
 {
+
     public ChatController(dashboardContext dashboard) : base(dashboard) { }
 
+    [HttpDelete("delete/{id}")]
+    public async Task<IActionResult> DeleteMessage(int id)
+    {
+        var message = await _dashboard.ChatMessages.FindAsync(id);
+        if (message == null) return NotFound();
+
+        _dashboard.ChatMessages.Remove(message);
+        await _dashboard.SaveChangesAsync();
+        return Ok();
+    }
+    [HttpPost("upload-file")]
+    public async Task<IActionResult> UploadFile(IFormFile file, [FromForm] string userId, [FromForm] string userName)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest("Файл не выбран");
+
+        var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "chat");
+        Directory.CreateDirectory(uploadsFolder);
+
+        var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+        var filePath = Path.Combine(uploadsFolder, fileName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        var fileUrl = $"/uploads/chat/{fileName}";
+        var message = $"📎 <a href='{fileUrl}' target='_blank'>{file.FileName}</a> ({file.Length / 1024} КБ)";
+
+        _dashboard.ChatMessages.Add(new ChatMessageEntity
+        {
+            UserId = userId,
+            UserName = userName ?? "Гость",
+            Message = message,
+            CreatedAt = DateTime.UtcNow
+        });
+        await _dashboard.SaveChangesAsync();
+
+        return Ok(new { fileUrl, fileName = file.FileName });
+    }
     [HttpGet("history")]
     public async Task<IActionResult> GetHistory()
     {
@@ -17,7 +59,7 @@ public class ChatController : BaseController
             .OrderByDescending(m => m.CreatedAt)
             .Take(50)
             .OrderBy(m => m.CreatedAt)
-            .Select(m => new { m.UserName, m.Message, m.CreatedAt })
+            .Select(m => new { m.Id, m.UserName, m.Message, m.CreatedAt })
             .ToListAsync();
         return Ok(messages);
     }

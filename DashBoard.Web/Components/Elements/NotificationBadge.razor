@@ -1,7 +1,8 @@
-﻿@inject HttpClient Http
+﻿@inject Services.ApiService api
+@inject IJSRuntime JSRuntime
 @using System.Threading
 @implements IDisposable
-@inject IJSRuntime JSRuntime
+
 @if (_count > 0)
 {
     <MudBadge Content="@_count" Color="Color.Error" Overlap="true">
@@ -30,14 +31,10 @@ else
         try
         {
             var lastCheck = await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('lastChatCheck')");
-            var url = $"http://api:8080/api/chat/count?since={lastCheck}";
-            var response = await Http.GetAsync(url);
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadFromJsonAsync<ChatCountResult>();
-                _count = result?.Count ?? 0;
-                StateHasChanged();
-            }
+            var url = $"api/chat/count?since={lastCheck}";
+            var result = await api.GetAsync<ChatCountResult>(url);  
+            _count = result?.Count ?? 0;
+            StateHasChanged();
         }
         catch { }
     }

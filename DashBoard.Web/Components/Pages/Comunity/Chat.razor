@@ -1,8 +1,10 @@
 ﻿@page "/chat"
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
+@inject Services.ApiService api
 @using System.Threading
 @implements IDisposable
+
 <MudContainer MaxWidth="MaxWidth.Medium">
     <MudText Typo="Typo.h4" Class="mb-4">Чат</MudText>
 
@@ -11,16 +13,51 @@
             @foreach (var msg in _messages)
             {
                 <div class="mb-2">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">@msg.Time @msg.User</MudText>
-                    <MudText Typo="Typo.body2">@msg.Text</MudText>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@msg.Time @msg.User</MudText>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Size="Size.Small"
+                                       Color="Color.Error"
+                                       OnClick="@(() => DeleteMessage(msg.Id))" />
+                    </div>
+                    @if (msg.IsFile)
+                    {
+                        <MudText Typo="Typo.body2">
+                            📎 <a href="@msg.FileUrl" target="_blank">@msg.FileName</a>
+                            <MudText Typo="Typo.caption">@msg.FileSize КБ</MudText>
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2">@msg.Text</MudText>
+                    }
                 </div>
             }
         </div>
+
+      
+        @if (!string.IsNullOrEmpty(_selectedFileName))
+        {
+            <MudChip T="string" Color="Color.Info" Size="Size.Small" OnClose="ClearFile">
+                📎 @_selectedFileName
+            </MudChip>
+        }
+
         <div style="display: flex; gap: 8px; padding: 8px;">
+            
+            <MudFileUpload T="IBrowserFile" FilesChanged="HandleFileUpload" Accept="*/*">
+                <CustomContent>
+                    <MudIconButton Icon="@Icons.Material.Filled.AttachFile"
+                                   OnClick="@context.OpenFilePickerAsync"
+                                   Color="Color.Inherit" Size="Size.Small" />
+                </CustomContent>
+            </MudFileUpload>
+
             <MudTextField @bind-Value="_newMessage"
                           Label="Сообщение"
                           OnKeyUp="HandleKeyDown"
                           Style="flex-grow: 1;" />
+
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SendMessage">
                 Отправить
             </MudButton>
@@ -32,89 +69,95 @@
     private List<ChatMessage> _messages = new();
     private string _newMessage = "";
     private Timer? _timer;
-    private async Task HandleKeyDown(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_newMessage))
-        {
-            await SendMessage();
-        }
-    }
+    private string _selectedFileName = "";
+    private IBrowserFile? _selectedFile;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadHistory();
-
-        
         _timer = new Timer(async _ =>
-        {
-            await LoadHistory();
-            await InvokeAsync(StateHasChanged);
-        }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+ {
+     try
+     {
+         await LoadHistory();
+         await InvokeAsync(StateHasChanged);
+     }
+     catch { }
+ }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
     }
-
+    private async Task DeleteMessage(int id)
+    {
+        await api.DeleteAsync($"api/chat/delete/{id}");
+        await LoadHistory();
+    }
     private async Task LoadHistory()
     {
-        try
+        var history = await api.GetAsync<List<ChatHistoryItem>>("api/chat/history");
+        _messages = history?.Select(h => new ChatMessage
         {
-            var response = await Http.GetAsync("http://api:8080/api/chat/history");
-            if (response.IsSuccessStatusCode)
-            {
-                var history = await response.Content.ReadFromJsonAsync<List<ChatHistoryItem>>();
-                _messages = history?.Select(h => new ChatMessage
-                {
-                    User = h.UserName,
-                    Text = h.Message,
-                    Time = h.CreatedAt.ToString("HH:mm")
-                }).ToList() ?? new();
+            Id = h.Id,
+            User = h.UserName,
+            Text = h.Message,
+            Time = h.CreatedAt.ToString("HH:mm"),
+            IsFile = h.Message.StartsWith("📎"),
+            FileUrl = h.Message.Contains("href='") ?
+                h.Message.Split("href='")[1].Split("'")[0] : "",
+            FileName = h.Message.Contains("href='") ?
+                h.Message.Split(">")[1].Split("<")[0] : "",
+            FileSize = h.Message.Contains("(") ?
+                h.Message.Split("(")[1].Split(")")[0] : ""
+        }).ToList() ?? new();
+        StateHasChanged();
+    }
 
-                StateHasChanged();
-            }
-            await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('lastChatCheck', '{DateTime.UtcNow:o}')");
-        }
-        catch { }
+    private async Task HandleFileUpload(IBrowserFile file)
+    {
+        if (file == null) return;
+        _selectedFile = file;
+        _selectedFileName = file.Name;
+    }
+
+    private void ClearFile()
+    {
+        _selectedFile = null;
+        _selectedFileName = "";
     }
 
     private async Task SendMessage()
     {
-        if (string.IsNullOrWhiteSpace(_newMessage)) return;
+        if (string.IsNullOrWhiteSpace(_newMessage) && _selectedFile == null) return;
 
         var userName = (await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('userName')"))?.Trim('"', '\'') ?? "Гость";
-
-       
-        _messages.Add(new ChatMessage
-        {
-            User = userName,
-            Text = _newMessage,
-            Time = DateTime.Now.ToString("HH:mm")
-        });
-
         var userId = (await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('userId')"))?.Trim('"', '\'');
-        var data = new { userId, userName, message = _newMessage };
-        var content = new StringContent(
-            System.Text.Json.JsonSerializer.Serialize(data),
-            System.Text.Encoding.UTF8, "application/json");
 
-        _ = Http.PostAsync("http://api:8080/api/chat/send", content);
+        if (_selectedFile != null)
+        {
+            using var content = new MultipartFormDataContent();
+            var stream = _selectedFile.OpenReadStream(10 * 1024 * 1024);
+            content.Add(new StreamContent(stream), "file", _selectedFile.Name);
+            content.Add(new StringContent(userId ?? ""), "userId");
+            content.Add(new StringContent(userName), "userName");
+
+            await api.PostFormAsync<object>("api/chat/upload-file", content);
+            ClearFile();
+        }
+
+        if (!string.IsNullOrWhiteSpace(_newMessage))
+        {
+            var data = new { userId, userName, message = _newMessage };
+            await api.PostAsync<object>("api/chat/send", data);
+        }
 
         _newMessage = "";
-        StateHasChanged();
+        await LoadHistory();
     }
 
-    public void Dispose()
+    private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        _timer?.Dispose();
+        if (e.Key == "Enter") await SendMessage();
     }
 
-    public class ChatMessage
-    {
-        public string User { get; set; } = "";
-        public string Text { get; set; } = "";
-        public string Time { get; set; } = "";
-    }
+    public void Dispose() => _timer?.Dispose();
 
-    public class ChatHistoryItem
-    {
-        public string UserName { get; set; } = "";
-        public string Message { get; set; } = "";
-        public DateTime CreatedAt { get; set; }
-    }
+  
 }

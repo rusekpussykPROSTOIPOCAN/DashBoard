@@ -2,12 +2,13 @@
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
 @using System.Text
+@inject Services.ApiService api
 @using System.Text.Json
 
 <MudContainer MaxWidth="MaxWidth.Large">
     <MudText Typo="Typo.h4" Class="mb-4">Лента событий</MudText>
 
-    @* Поиск и фильтры *@
+    
     <MudGrid Class="mb-4">
         <MudItem xs="12" md="4">
             <MudTextField @bind-Value="_search" Placeholder="Поиск..." 
@@ -26,7 +27,7 @@
         </MudItem>
     </MudGrid>
 
-    @* Скелетон при загрузке *@
+   
     @if (_isLoading)
     {
         @for (int i = 0; i < 5; i++)
@@ -54,12 +55,12 @@
     }
     else
     {
-        @* Карточки событий *@
+        
         @foreach (var evt in _filteredEvents)
         {
             <MudCard Class="mb-2" Elevation="1">
                 <div style="display: flex; align-items: flex-start; padding: 12px; gap: 12px;">
-                    @* Аватар *@
+                    
                     <MudAvatar Color="Color.Primary" Size="Size.Small">
                         @evt.UserName?.FirstOrDefault().ToString().ToUpper()
                     </MudAvatar>
@@ -133,7 +134,7 @@
         _isLoading = true;
         StateHasChanged();
         
-        var result = await Http.GetFromJsonAsync<List<EventLogItem>>("http://api:8080/api/events");
+        var result = await api.GetAsync<List<EventLogItem>>("api/events");
         _events = result ?? new();
         ApplyFilters();
         
@@ -191,7 +192,7 @@
             var userId = await JSRuntime.GetUserId();
             var request = new { userId, title = _newEventTitle, description = _newEventDescription, eventDate = _newEventDate ?? DateTime.Today };
             var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
-            await Http.PostAsync("http://api:8080/api/calendar/events", content);
+            await api.PostAsync<object>("api/calendar/events", content);
             _dialogVisible = false;
             await LoadEvents();
         }

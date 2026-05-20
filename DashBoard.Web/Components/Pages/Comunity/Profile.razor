@@ -2,6 +2,7 @@
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
 @inject ISnackbar Snackbar
+@inject Services.ApiService api
 
 <MudContainer MaxWidth="MaxWidth.Medium">
     <MudText Typo="Typo.h4" Class="mb-4">Профиль</MudText>
@@ -61,7 +62,6 @@
     private string _fullName = "";
     private string _email = "";
     private string _role = "";
-
     private bool _changePasswordVisible;
     private string _oldPassword = "";
     private string _newPassword = "";
@@ -87,55 +87,20 @@
         _changePasswordVisible = true;
     }
 
-    private void CancelChangePassword()
-    {
-        _changePasswordVisible = false;
-    }
+    private void CancelChangePassword() => _changePasswordVisible = false;
 
     private async Task HandleChangePassword()
     {
-        if (string.IsNullOrWhiteSpace(_oldPassword))
-        {
-            Snackbar.Add("Введите текущий пароль", Severity.Warning);
-            return;
-        }
-
-        if (_newPassword.Length < 6)
-        {
-            Snackbar.Add("Пароль должен быть не менее 6 символов", Severity.Warning);
-            return;
-        }
-
-        if (_newPassword != _confirmPassword)
-        {
-            Snackbar.Add("Пароли не совпадают", Severity.Warning);
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(_oldPassword)) { Snackbar.Add("Введите текущий пароль", Severity.Warning); return; }
+        if (_newPassword.Length < 6) { Snackbar.Add("Пароль должен быть не менее 6 символов", Severity.Warning); return; }
+        if (_newPassword != _confirmPassword) { Snackbar.Add("Пароли не совпадают", Severity.Warning); return; }
 
         try
         {
-            var token = (await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('authToken')"))?.Trim('"', '\'');
-            Http.DefaultRequestHeaders.Authorization = 
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
             var data = new { oldPassword = _oldPassword, newPassword = _newPassword };
-            var content = new StringContent(
-                System.Text.Json.JsonSerializer.Serialize(data), 
-                System.Text.Encoding.UTF8, 
-                "application/json");
-
-            var response = await Http.PostAsync("http://api:8080/api/auth/change-password", content);
-
-            if (response.IsSuccessStatusCode)
-            {
-                Snackbar.Add("Пароль успешно изменён!", Severity.Success);
-                _changePasswordVisible = false;
-            }
-            else
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                Snackbar.Add($"Ошибка: {error}", Severity.Error);
-            }
+            await api.PostAsync<object>("api/auth/change-password", data);  // ← Используем api
+            Snackbar.Add("Пароль успешно изменён!", Severity.Success);
+            _changePasswordVisible = false;
         }
         catch (Exception ex)
         {

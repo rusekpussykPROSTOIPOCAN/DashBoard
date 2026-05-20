@@ -8,7 +8,11 @@ namespace DashBoard.Lib.DTOs
         public string ShortName { get; set; } = string.Empty;
 
     }
-
+    public class ImportResult
+    {
+        public string Message { get; set; } = "";
+        public List<string>? Errors { get; set; }
+    }
     public class AddDetailsRobot
     {
         public int IdRobot { get; set; }

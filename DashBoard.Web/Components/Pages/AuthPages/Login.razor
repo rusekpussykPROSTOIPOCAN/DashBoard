@@ -1,5 +1,5 @@
 ﻿@page "/login"
-@inject HttpClient Http
+@inject Services.ApiService api
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 @inject IJSRuntime JSRuntime
@@ -10,15 +10,15 @@
     <MudCard Class="mt-10 pa-5">
         <MudCardContent>
             <MudText Typo="Typo.h5" Class="mb-4">Вход в систему</MudText>
-            
+
             <MudTextField @bind-Value="_email" Label="Email" />
             <MudTextField @bind-Value="_password" Label="Пароль" InputType="InputType.Password" />
             <MudCheckBox T="string" @bind-Checked="_rememberMe" Label="Запомнить меня" />
-            
+
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleLogin" Class="mt-4" FullWidth="true">
                 Войти
             </MudButton>
-            
+
             <MudText Class="mt-2">
                 Нет аккаунта? <MudLink Href="/register">Зарегистрироваться</MudLink>
             </MudText>
@@ -34,39 +34,34 @@
     private async Task HandleLogin()
     {
         var data = new { email = _email, password = _password, rememberMe = _rememberMe };
-        var json = JsonSerializer.Serialize(data);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        var response = await Http.PostAsync("http://api:8080/api/auth/login", content);
-
-        if (response.IsSuccessStatusCode)
+        try
         {
-            var responseBody = await response.Content.ReadAsStringAsync();
+            var result = await api.PostAsync<LoginResult>("api/auth/login", data); 
 
-
-            await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('authData', '{responseBody.Replace("'", "\\'")}')");
-
-           
-            var result = JsonSerializer.Deserialize<LoginResult>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            var token = result?.Token ?? "";
-
-            if (!string.IsNullOrEmpty(token))
+            if (result != null && !string.IsNullOrEmpty(result.Token))
             {
-                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('authToken', '{token}')");
-                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('userName', '{result?.FullName}')");
-                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('userId', '{result?.UserId}')");
-            }
+                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('authToken', '{result.Token}')");
+                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('userName', '{result.FullName}')");
+                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('userId', '{result.UserId}')");
 
-            Snackbar.Add($"Добро пожаловать, {result?.FullName}!", Severity.Success);
-            Navigation.NavigateTo("/", forceLoad: true);
+                Snackbar.Add($"Добро пожаловать, {result.FullName}!", Severity.Success);
+                Navigation.NavigateTo("/", forceLoad: true);
+            }
         }
-        else
+        catch
         {
             Snackbar.Add("Неверный email или пароль", Severity.Error);
         }
-    
+    }
 
-}
-    
-    
+    public class LoginResult
+    {
+        public bool Success { get; set; }
+        public string? Token { get; set; }
+        public string? Email { get; set; }
+        public string? FullName { get; set; }
+        public string? UserId { get; set; }
+        public List<string>? Roles { get; set; }
+    }
 }

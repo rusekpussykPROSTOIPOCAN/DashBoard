@@ -12,7 +12,7 @@ var apiUrl = Environment.GetEnvironmentVariable("API_URL");
 
 if (string.IsNullOrEmpty(apiUrl))
 {
-    apiUrl = "http://localhost:8080";
+    apiUrl = "https://localhost/api";
 }
 
 builder.Services.AddMudServices();

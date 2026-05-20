@@ -24,7 +24,7 @@ if (string.IsNullOrEmpty(connectionString))
 
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.ListenAnyIP(8080);
+    options.ListenAnyIP(5000);
 });
 builder.Services.AddDbContext<dashboardContext>(options =>
     options.UseNpgsql(connectionString));

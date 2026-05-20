@@ -4,6 +4,7 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject ISnackbar Snackbar
+
 <PageTitle>@Departs.Robots</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large">
@@ -24,12 +25,8 @@
                 <DialogPer OnChange="OnPeriodChanged" />
                 <MudButton Size="Size.Small" OnClick="SwitchFilter">Календарь</MudButton>
             }
-            <MudButton Variant="Variant.Outlined"
-                       Color="Color.Info"
-                       StartIcon="@Icons.Material.Filled.FileDownload"
-                       OnClick="ExportRobots">
-                
-            </MudButton>
+           
+           
         </MudItem>
         
         <MudItem sm="3" xs="6">
@@ -42,13 +39,33 @@
                              ResetValueOnEmptyText="true" />
         </MudItem>
         
-        <MudItem md="3" sm="3" Class="d-flex justify-end gap-1">
-            <MudButton Href="/AddRobot" StartIcon="@Icons.Material.Filled.Add">Добавить</MudButton>
+        <MudItem md="12" Class="d-flex justify-end gap-2 mb-4">
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Info"
+                       StartIcon="@Icons.Material.Filled.FileDownload"
+                       OnClick="ExportRobots">
+
+            </MudButton>
+            <MudFileUpload T="IBrowserFile" FilesChanged="HandleRobotsUpload" Accept=".xlsx,.xls">
+                <CustomContent>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Info"
+                               OnClick="@context.OpenFilePickerAsync"
+                               StartIcon="@Icons.Material.Filled.UploadFile" Size="Size.Small">
+                        Загрузить Excel
+                    </MudButton>
+                </CustomContent>
+            </MudFileUpload>
+
+            <MudButton Href="/AddRobot" Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add" Size="Size.Small">
+                Добавить
+            </MudButton>
+
             @if (_idRobot.HasValue)
             {
                 <MudButton OnClick="() => EditRobot(_idRobot.Value)"
-                           StartIcon="@Icons.Material.Filled.Edit"
-                           Color="Color.Warning">
+                           Variant="Variant.Outlined" Color="Color.Warning"
+                           StartIcon="@Icons.Material.Filled.Edit" Size="Size.Small">
                     Ред.
                 </MudButton>
             }
@@ -94,7 +111,28 @@
         _dateRange = range;
         await LoadCharts();
     }
+    private async Task HandleRobotsUpload(IBrowserFile file)
+    {
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            content.Add(new StreamContent(stream), "file", file.Name);
 
+            var response = await api.PostFormAsync<ImportResult>("api/robot-add/upload-robots", content);
+
+            if (response != null)
+            {
+                Snackbar.Add(response.Message, Severity.Success);
+
+                await LoadCharts();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
+        }
+    }
     private async Task ExportRobots()
     {
         try

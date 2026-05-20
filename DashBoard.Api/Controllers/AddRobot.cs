@@ -1,4 +1,5 @@
-﻿using DashBoard.Api.Controllers;
+﻿using DashBoard.Api.Service;
+using DashBoard.Api.Services;
 using DashBoard.Lib.Data;
 using DashBoard.Lib.DTOs;
 using DashBoard.Lib.Models;
@@ -15,6 +16,152 @@ namespace DashBoard.Api.Controllers
         public AddRobot(dashboardContext dashboard) : base(dashboard)
         {
         }
+
+        [HttpPost("upload-robots")]
+        public async Task<IActionResult> UploadRobots(
+    IFormFile file,
+    [FromServices] ExcelInputService importService)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("Файл не выбран");
+
+            try
+            {
+                using var stream = file.OpenReadStream();
+                var rows = importService.ParseExcel(stream);
+
+                var imported = 0;
+                var errors = new List<string>();
+
+                var groups = rows
+                    .GroupBy(r => new
+                    {
+                        Robot = r.GetValueOrDefault("Робот", ""),
+                        Date = r.GetValueOrDefault("Дата", "")
+                    })
+                    .ToList();
+
+                foreach (var group in groups)
+                {
+                    try
+                    {
+                        var robotName = group.Key.Robot;
+                        var dateStr = group.Key.Date;
+
+                        if (string.IsNullOrWhiteSpace(robotName) || string.IsNullOrWhiteSpace(dateStr))
+                            continue;
+
+                        var robot = await _dashboard.robots
+                            .FirstOrDefaultAsync(r => r.name.ToLower() == robotName.ToLower());
+
+                        if (robot == null)
+                        {
+                            robot = new robot
+                            {
+                                name = robotName,
+                                short_name = group.First().GetValueOrDefault("Короткое название", robotName)
+                            };
+                            _dashboard.robots.Add(robot);
+                            await _dashboard.SaveChangesAsync();
+                        }
+
+                        if (!DateOnly.TryParse(dateStr, out var date))
+                        {
+                            if (DateTime.TryParse(dateStr, out var dt))
+                                date = DateOnly.FromDateTime(dt);
+                            else continue;
+                        }
+
+                        var countAppStr = group.First().GetValueOrDefault("Количество заявок", "0");
+                        int? countApplications = int.TryParse(countAppStr, out int ca) ? ca : null;
+
+                        
+                        var blocks = new Dictionary<string, object>();
+
+                        var blockGroups = group
+                            .Where(r => !string.IsNullOrWhiteSpace(r.GetValueOrDefault("Название блока", "")))
+                            .GroupBy(r => r.GetValueOrDefault("Название блока", ""));
+
+                        foreach (var blockGroup in blockGroups)
+                        {
+                            var blockName = blockGroup.Key;
+                            var details = new Dictionary<string, int>();
+                            int sum = 0;
+
+                            foreach (var row in blockGroup)
+                            {
+                                var key = row.GetValueOrDefault("Деталь", "");
+                                var valueStr = row.GetValueOrDefault("Значение детали", "0");
+
+                                if (string.IsNullOrWhiteSpace(key)) continue;
+                                if (key == "Сумма") continue; 
+
+                                if (int.TryParse(valueStr, out int value))
+                                {
+                                    details[key] = value;
+                                    sum += value;
+                                }
+                            }
+
+                            
+                            var sumRow = blockGroup.FirstOrDefault(r => r.GetValueOrDefault("Значение детали", "") == "Сумма");
+                            if (sumRow != null && int.TryParse(sumRow.GetValueOrDefault("Значение детали", "0"), out int totalSum))
+                                sum = totalSum;
+
+                            if (details.Any())
+                            {
+                                blocks[blockName] = new
+                                {
+                                    type = details.Count > 5 ? "Bar" : "Pie",
+                                    сумма = sum,
+                                    детали = details
+                                };
+                            }
+                        }
+
+                        if (!blocks.Any()) continue;
+
+                        var json = JsonSerializer.Serialize(blocks);
+
+                        var existing = await _dashboard.robots_analitics
+                            .FirstOrDefaultAsync(ra => ra.idrobots == robot.id && ra.datestatistic == date);
+
+                        if (existing != null)
+                        {
+                            existing.data_analize = json;
+                            existing.count_application = countApplications;
+                        }
+                        else
+                        {
+                            _dashboard.robots_analitics.Add(new robots_analitic
+                            {
+                                idrobots = robot.id,
+                                datestatistic = date,
+                                data_analize = json,
+                                isactive = true,
+                                count_application = countApplications
+                            });
+                        }
+
+                        imported++;
+                    }
+                    catch (Exception ex)
+                    {
+                        errors.Add($"{group.Key.Robot} ({group.Key.Date}): {ex.Message}");
+                    }
+                }
+
+                await _dashboard.SaveChangesAsync();
+                await LogEvent("Импорт роботов", $"Загружено {imported} записей из Excel");
+
+                return Ok(new { message = $"Импортировано записей: {imported}", errors });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Ошибка: {ex.Message}");
+            }
+        }
+
 
         [HttpPost]
         public async Task<IActionResult> CreateRobot([FromBody] CreateRobotRequest request)

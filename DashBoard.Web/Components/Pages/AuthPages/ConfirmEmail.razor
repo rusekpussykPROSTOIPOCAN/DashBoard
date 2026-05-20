@@ -1,5 +1,5 @@
 ﻿@page "/confirm-email"
-@inject HttpClient Http
+@inject Services.ApiService api
 @inject NavigationManager Navigation
 
 @if (_isLoading)
@@ -36,14 +36,9 @@ else
 
         try
         {
-            
-            var apiUrl = $"http://api:8080/api/auth/confirm-email?userId={userId}&token={token}";
-            var response = await Http.GetAsync(apiUrl);
-
-            if (response.IsSuccessStatusCode)
-                _isSuccess = true;
-            else
-                _errorMessage = await response.Content.ReadAsStringAsync();
+            var apiUrl = $"api/auth/confirm-email?userId={userId}&token={token}";
+            var response = await api.GetAsync<string>(apiUrl);  // ← Используем api
+            _isSuccess = true;
         }
         catch (Exception ex)
         {

@@ -1,0 +1,16 @@
+# Просмотр логов
+docker-compose logs -f [название_сервиса]
+
+# Ручной бэкап
+docker exec dashboard-postgres-backup /backup-script.sh
+
+# Просмотр списка бэкапов
+docker exec dashboard-postgres-backup ls -lh /backups/
+
+# Восстановление из бэкапа
+docker-compose stop api
+docker exec dashboard-postgres-backup sh -c 'zcat /backups/latest.sql.gz | PGPASSWORD=$PGPASSWORD psql -h $PGHOST -U $PGUSER -d $PGDATABASE'
+docker-compose start api
+
+# Перезапуск отдельного сервиса
+docker-compose restart web

@@ -83,7 +83,8 @@ namespace DashBoard.Api.Controllers
 
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             var encodedToken = Uri.EscapeDataString(token);
-            var confirmLink = $"https://localhost/api/auth/confirm-email?userId={user.Id}&token={encodedToken}";
+            var frontendUrl = _config["FrontendUrl"] ?? "https://localhost";
+            var confirmLink = $"{frontendUrl}/api/auth/confirm-email?userId={user.Id}&token={encodedToken}";
             await LogEvent("Регистрация", $"Новый пользователь {user.UserName} добавлен", user.UserName);
             await _emailService.SendEmailAsync(user.Email, "Подтверждение регистрации",
                 $"<h2>Добро пожаловать!</h2><p>Подтвердите email: <a href='{confirmLink}'>нажмите здесь</a></p>");
