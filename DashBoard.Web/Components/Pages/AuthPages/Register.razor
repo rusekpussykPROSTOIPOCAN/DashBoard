@@ -13,7 +13,12 @@
             <MudTextField @bind-Value="_fullName" Label="ФИО" />
             <MudTextField @bind-Value="_email" Label="Email" />
             <MudTextField @bind-Value="_password" Label="Пароль" InputType="InputType.Password" />
-            <MudTextField @bind-Value="_department" Label="Отдел" />
+            <MudSelect @bind-Value="_department" Label="Отдел">
+                @foreach(var dep in _departs)
+                {
+                    <MudSelectItem Value="dep">@dep</MudSelectItem>
+                }
+            </MudSelect>
 
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleRegister" Class="mt-4" FullWidth="true">
                 Зарегистрироваться
@@ -32,12 +37,14 @@
     private string _password = "";
     private string _department = "";
 
+
+    private readonly string[] _departs = { "ДКН", "Аналитика" };
     private async Task HandleRegister()
     {
         try
         {
             var data = new { email = _email, password = _password, fullName = _fullName, department = _department };
-            await api.PostAsync<object>("api/auth/register", data);  // ← Используем api
+            await api.PostAsync<object>("api/auth/register", data); 
             Snackbar.Add("Регистрация успешна! Проверьте почту.", Severity.Success);
             Navigation.NavigateTo("/login");
         }
