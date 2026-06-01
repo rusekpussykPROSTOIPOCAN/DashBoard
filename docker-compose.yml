@@ -23,7 +23,7 @@ services:
       retries: 5
     restart: unless-stopped
 
-  postgres-backup:
+   postgres-backup:
     image: postgres:18-alpine
     container_name: dashboard-postgres-backup
     environment:
@@ -32,19 +32,20 @@ services:
       PGUSER: postgres
       PGPASSWORD: 1111
       PGDATABASE: dashboard
-      BACKUP_SCHEDULE: "0 2 * * *"
-      BACKUP_RETENTION_DAYS: 7
     volumes:
       - postgres_backups:/backups
-      - ./backup-script.sh:/backup-script.sh:ro
-    entrypoint: ["/bin/sh", "-c"]
+      - ./backup-script.sh:/usr/local/bin/backup:ro
     command: |
-      "
-      echo \"$${BACKUP_SCHEDULE} /backup-script.sh\" > /tmp/crontab
-      echo \"0 3 * * * find /backups -name '*.sql.gz' -mtime +$${BACKUP_RETENTION_DAYS} -delete\" >> /tmp/crontab
-      crontab /tmp/crontab
-      crond -f
-      "
+      sh -c '
+      while true; do
+        echo "$(date): Running backup..."
+        /usr/local/bin/backup
+        echo "$(date): Cleaning old backups..."
+        find /backups -name "*.sql.gz" -mtime +7 -delete
+        echo "$(date): Sleeping 24 hours..."
+        sleep 86400
+      done
+      '
     depends_on:
       postgres:
         condition: service_healthy
