@@ -182,6 +182,7 @@ namespace DashBoard.Api.Controllers
                     foreach (var blockName in allBlocksSet.OrderBy(b => b))
                     {
                         sheet.Cell(row, 1).Value = blockName;
+                        sheet.Cell(row, 1).Style.Font.Italic = true;
                         row++;
 
                        

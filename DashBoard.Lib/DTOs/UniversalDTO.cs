@@ -16,12 +16,8 @@ namespace DashBoard.Lib.DTOs
         public string Block { get; set; }
         public string Title { get; set; } = default!;
         public int? Total { get; set; }
-
         public ChartTypeRobot Type { get; set; }
-
-
         public List<UniversalChartItemV3> Items { get; set; } = new();
-
         public bool IsRaw { get; set; }
     }
 
