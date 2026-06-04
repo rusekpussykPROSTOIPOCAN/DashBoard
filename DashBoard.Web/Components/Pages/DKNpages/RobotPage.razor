@@ -29,6 +29,7 @@
            
         </MudItem>
         
+        
         <MudItem sm="3" xs="6">
             <MudAutocomplete T="RobotDto" Clearable="true"
                              Label="Робот"
@@ -38,20 +39,19 @@
                              MinCharacters="0"
                              ResetValueOnEmptyText="true" />
         </MudItem>
-        
         <MudItem md="12" Class="d-flex justify-end gap-2 mb-4">
             <MudButton Variant="Variant.Outlined"
                        Color="Color.Info"
                        StartIcon="@Icons.Material.Filled.FileDownload"
-                       OnClick="ExportRobots">
+                       OnClick="ExportRobots"> Экспорт данных
 
             </MudButton>
             <MudFileUpload T="IBrowserFile" FilesChanged="HandleRobotsUpload" Accept=".xlsx,.xls">
                 <CustomContent>
                     <MudButton Variant="Variant.Outlined" Color="Color.Info"
                                OnClick="@context.OpenFilePickerAsync"
-                               StartIcon="@Icons.Material.Filled.UploadFile" Size="Size.Small">
-                        Загрузить Excel
+                               StartIcon="@Icons.Material.Filled.FileUpload" Size="Size.Large">
+                       Импорт данных
                     </MudButton>
                 </CustomContent>
             </MudFileUpload>
