@@ -7,7 +7,7 @@
 <MudContainer MaxWidth="MaxWidth.ExtraLarge">
     <MudItem Class="my-5">
         <MudText Typo="Typo.h4" Class="mb-5">Редактирование данных</MudText>
-        
+
         <MudButtonGroup Class="mb-4">
             <MudButton OnClick='() => SwitchTable("block2")'
                        Variant="@(_activeTable == "block2" ? Variant.Filled : Variant.Outlined)"
@@ -36,30 +36,30 @@
                          Dense="true"
                          EditTrigger="DataGridEditTrigger.Manual"
                          ReadOnly="false">
-<ToolBarContent>
-    <MudText Typo="Typo.h6">Заявки</MudText>
-    <MudSpacer />
-    
-       <MudTextField @bind-Value="_searchString" Placeholder="Поиск" Adornment="Adornment.Start" Immediate="true" Clearable="true"
-            AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mx-5"></MudTextField>
-  <MudFileUpload T="IBrowserFile" FilesChanged="HandleBlock2Upload" Accept=".xlsx,.xls">
-    <CustomContent>
-        <MudButton Variant="Variant.Outlined"
-                   Color="Color.Info"
-                   OnClick="@context.OpenFilePickerAsync"
-                   StartIcon="@Icons.Material.Filled.UploadFile">
-            Загрузить таблицу
-        </MudButton>
-    </CustomContent>
-</MudFileUpload>
-    
-    <MudButton OnClick="AddNewBlock2" Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add">
-        Добавить
-    </MudButton>
-</ToolBarContent>
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">Заявки</MudText>
+                    <MudSpacer />
+
+                    <MudTextField @bind-Value="_searchString" Placeholder="Поиск" Adornment="Adornment.Start" Immediate="true" Clearable="true"
+                                  AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mx-5"></MudTextField>
+                    <MudFileUpload T="IBrowserFile" FilesChanged="HandleBlock2Upload" Accept=".xlsx,.xls">
+                        <CustomContent>
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Info"
+                                       OnClick="@context.OpenFilePickerAsync"
+                                       StartIcon="@Icons.Material.Filled.UploadFile">
+                                Загрузить таблицу
+                            </MudButton>
+                        </CustomContent>
+                    </MudFileUpload>
+
+                    <MudButton OnClick="AddNewBlock2" Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add">
+                        Добавить
+                    </MudButton>
+                </ToolBarContent>
                 <Columns>
                     <PropertyColumn Property="x => x.Id" Title="ID" Editable="false" />
-                    <TemplateColumn Title="Район" >
+                    <TemplateColumn Title="Район">
                         <CellTemplate>
                             <MudText>@context.Item.DistrictName</MudText>
                         </CellTemplate>
@@ -89,37 +89,38 @@
                         <CellTemplate>
                             <MudText>@context.Item.AddressName</MudText>
                         </CellTemplate>
-                       <EditTemplate>
-    @if (_showCustomAddress && _currentEditingItem == context.Item)
-    {
-        <MudTextField @bind-Value="context.Item.AddressName" 
-                      Label="Введите адрес"
-                      Variant="Variant.Outlined"
-                      Immediate="true"
-                      Adornment="Adornment.End"
-                      AdornmentIcon="@Icons.Material.Filled.Close"
-                      OnAdornmentClick="@(() => { 
-                          _showCustomAddress = false; 
-                          context.Item.AddressName = "";
-                      })" />
-    }
-    else
-    {
-        <MudSelect T="int?" 
-                   @bind-Value="context.Item.IdAddress" 
-                   Label="Адрес">
-            <MudSelectItem T="int?" Value="@(-1)" OnClick="@(() => OnAddressSelected(-1, context.Item))">
-                Другое (ввести вручную)
-            </MudSelectItem>
-            @foreach (var a in _addresses)
-            {
-                <MudSelectItem T="int?" Value="@((int?)a.Id)" OnClick="@(() => OnAddressSelected(a.Id, context.Item))">
-                    @a.Name
-                </MudSelectItem>
-            }
-        </MudSelect>
-    }
-</EditTemplate>
+                        <EditTemplate>
+                            @if (_showCustomAddress && _currentEditingItem == context.Item)
+                            {
+                                <MudTextField @bind-Value="context.Item.AddressName"
+                                              Label="Введите адрес"
+                                              Variant="Variant.Outlined"
+                                              Immediate="true"
+                                              Adornment="Adornment.End"
+                                              AdornmentIcon="@Icons.Material.Filled.Close"
+                                              OnAdornmentClick="@(() =>
+                                              {
+                                                  _showCustomAddress = false;
+                                                  context.Item.AddressName = "";
+                                              })" />
+                            }
+                            else
+                            {
+                                <MudSelect T="int?"
+                                           @bind-Value="context.Item.IdAddress"
+                                           Label="Адрес">
+                                    <MudSelectItem T="int?" Value="@(-1)" OnClick="@(() => OnAddressSelected(-1, context.Item))">
+                                        Другое (ввести вручную)
+                                    </MudSelectItem>
+                                    @foreach (var a in _addresses)
+                                    {
+                                        <MudSelectItem T="int?" Value="@((int?)a.Id)" OnClick="@(() => OnAddressSelected(a.Id, context.Item))">
+                                            @a.Name
+                                        </MudSelectItem>
+                                    }
+                                </MudSelect>
+                            }
+                        </EditTemplate>
                     </TemplateColumn>
                     <TemplateColumn Title="Площадь">
                         <CellTemplate>
@@ -152,114 +153,114 @@
         else
         {
             <MudDataGrid @ref="_block1Grid"
-                      
                          SortMode="SortMode.Multiple"
-             T="OverflyBlock1Item"
-             Items="@_block1Items"
-             EditMode="DataGridEditMode.Form"
-             StartedEditingItem="@StartedEditingBlock1"
-             CanceledEditingItem="@CanceledEditingBlock1"
-             CommittedItemChanges="@CommittedBlock1Changes"
-             Bordered="true"
-             Dense="true"
-             EditTrigger="DataGridEditTrigger.Manual"
+                         T="OverflyBlock1Item"
+                         Items="@_block1Items"
+                         EditMode="DataGridEditMode.Form"
+                         StartedEditingItem="@StartedEditingBlock1"
+                         CanceledEditingItem="@CanceledEditingBlock1"
+                         CommittedItemChanges="@CommittedBlock1Changes"
+                         Bordered="true"
+                         Dense="true"
+                         EditTrigger="DataGridEditTrigger.Manual"
                          QuickFilter="@_quickFilterBlock1"
-             ReadOnly="false">
-    <ToolBarContent>
-        <MudText Typo="Typo.h6">Нарушения</MudText>
-        <MudSpacer />
+                         ReadOnly="false">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">Нарушения</MudText>
+                    <MudSpacer />
                     <MudTextField @bind-Value="_searchBlock1" Placeholder="Поиск" Adornment="Adornment.Start" Immediate="true" Clearable="true"
                                   AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mx-5"></MudTextField>
-  <MudFileUpload T="IBrowserFile" FilesChanged="HandleBlock1Upload" Accept=".xlsx,.xls">
-    <CustomContent>
-        <MudButton Variant="Variant.Outlined"
-                   Color="Color.Info"
-                   OnClick="@context.OpenFilePickerAsync"
-                   StartIcon="@Icons.Material.Filled.UploadFile">
-            Загрузить таблицу
-        </MudButton>
-    </CustomContent>
-</MudFileUpload>
-        <MudButton OnClick="AddNewBlock1" Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add">
-            Добавить
-        </MudButton>
-    </ToolBarContent>
-    <Columns>
-        <PropertyColumn Property="x => x.Id" Title="ID" Editable="false" />
-        <TemplateColumn Title="Район">
-            <CellTemplate>
-                <MudText>@context.Item.DistrictName</MudText>
-            </CellTemplate>
-            <EditTemplate>
-                <MudSelect T="int?" @bind-Value="context.Item.IdDistrict" Label="Район">
-                    @foreach (var d in _districts)
-                    {
-                        <MudSelectItem T="int?" Value="@((int?)d.Id)">@d.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </EditTemplate>
-        </TemplateColumn>
-        <TemplateColumn Title="Нарушение">
-            <CellTemplate>
-                <MudText>@context.Item.ViolationName</MudText>
-            </CellTemplate>
-            <EditTemplate>
-                @if (_showCustomViolation && _currentEditingBlock1Item == context.Item)
-                {
-                    <MudTextField @bind-Value="context.Item.ViolationName" 
-                                  Label="Введите нарушение"
-                                  Variant="Variant.Outlined"
-                                  Immediate="true"
-                                  Adornment="Adornment.End"
-                                  AdornmentIcon="@Icons.Material.Filled.Close"
-                                  OnAdornmentClick="@(() => { 
-                                      _showCustomViolation = false; 
-                                      context.Item.ViolationName = "";
-                                  })" />
-                }
-                else
-                {
-                    <MudSelect T="int?" 
-                               @bind-Value="context.Item.IdViolation" 
-                               Label="Нарушение">
-                        <MudSelectItem T="int?" Value="@(-1)">
-                            Другое (ввести вручную)
-                        </MudSelectItem>
-                        @foreach (var v in _violations)
-                        {
-                            <MudSelectItem T="int?" Value="@((int?)v.Id)">@v.Name</MudSelectItem>
-                        }
-                    </MudSelect>
-                }
-            </EditTemplate>
-        </TemplateColumn>
-        <TemplateColumn Title="Количество">
-            <CellTemplate>
-                <MudText>@context.Item.QuantityNewViolation</MudText>
-            </CellTemplate>
-            <EditTemplate>
-                <MudTextField @bind-Value="context.Item.QuantityNewViolation" Label="Количество" T="int?" />
-            </EditTemplate>
-        </TemplateColumn>
-        <TemplateColumn Title="Дата">
-            <CellTemplate>
-                <MudText>@context.Item.DateDetection?.ToString("yyyy-MM-dd")</MudText>
-            </CellTemplate>
-            <EditTemplate>
-                <MudDatePicker @bind-Date="context.Item.DateDetectionDateTime" Label="Дата" DateFormat="yyyy-MM-dd" />
-            </EditTemplate>
-        </TemplateColumn>
-        <TemplateColumn CellClass="d-flex justify-end">
-            <CellTemplate>
-                <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
-                <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteBlock1(context.Item))" />
-            </CellTemplate>
-        </TemplateColumn>
-    </Columns>
+                    <MudFileUpload T="IBrowserFile" FilesChanged="HandleBlock1Upload" Accept=".xlsx,.xls">
+                        <CustomContent>
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Info"
+                                       OnClick="@context.OpenFilePickerAsync"
+                                       StartIcon="@Icons.Material.Filled.UploadFile">
+                                Загрузить таблицу
+                            </MudButton>
+                        </CustomContent>
+                    </MudFileUpload>
+                    <MudButton OnClick="AddNewBlock1" Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add">
+                        Добавить
+                    </MudButton>
+                </ToolBarContent>
+                <Columns>
+                    <PropertyColumn Property="x => x.Id" Title="ID" Editable="false" />
+                    <TemplateColumn Title="Район">
+                        <CellTemplate>
+                            <MudText>@context.Item.DistrictName</MudText>
+                        </CellTemplate>
+                        <EditTemplate>
+                            <MudSelect T="int?" @bind-Value="context.Item.IdDistrict" Label="Район">
+                                @foreach (var d in _districts)
+                                {
+                                    <MudSelectItem T="int?" Value="@((int?)d.Id)">@d.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </EditTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Нарушение">
+                        <CellTemplate>
+                            <MudText>@context.Item.ViolationName</MudText>
+                        </CellTemplate>
+                        <EditTemplate>
+                            @if (_showCustomViolation && _currentEditingBlock1Item == context.Item)
+                            {
+                                <MudTextField @bind-Value="context.Item.ViolationName"
+                                              Label="Введите нарушение"
+                                              Variant="Variant.Outlined"
+                                              Immediate="true"
+                                              Adornment="Adornment.End"
+                                              AdornmentIcon="@Icons.Material.Filled.Close"
+                                              OnAdornmentClick="@(() =>
+                                              {
+                                                  _showCustomViolation = false;
+                                                  context.Item.ViolationName = "";
+                                              })" />
+                            }
+                            else
+                            {
+                                <MudSelect T="int?"
+                                           @bind-Value="context.Item.IdViolation"
+                                           Label="Нарушение">
+                                    <MudSelectItem T="int?" Value="@(-1)">
+                                        Другое (ввести вручную)
+                                    </MudSelectItem>
+                                    @foreach (var v in _violations)
+                                    {
+                                        <MudSelectItem T="int?" Value="@((int?)v.Id)">@v.Name</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            }
+                        </EditTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Количество">
+                        <CellTemplate>
+                            <MudText>@context.Item.QuantityNewViolation</MudText>
+                        </CellTemplate>
+                        <EditTemplate>
+                            <MudTextField @bind-Value="context.Item.QuantityNewViolation" Label="Количество" T="int?" />
+                        </EditTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Дата">
+                        <CellTemplate>
+                            <MudText>@context.Item.DateDetection?.ToString("yyyy-MM-dd")</MudText>
+                        </CellTemplate>
+                        <EditTemplate>
+                            <MudDatePicker @bind-Date="context.Item.DateDetectionDateTime" Label="Дата" DateFormat="yyyy-MM-dd" />
+                        </EditTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn CellClass="d-flex justify-end">
+                        <CellTemplate>
+                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
+                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteBlock1(context.Item))" />
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
                 <PagerContent>
                     <MudDataGridPager T="OverflyBlock1Item" />
                 </PagerContent>
-</MudDataGrid>
+            </MudDataGrid>
         }
     </MudItem>
 </MudContainer>
@@ -490,7 +491,7 @@
         await _block2Grid.SetEditingItemAsync(newItem);
     }
 
-    private void StartedEditingBlock2(OverflyBlock2Item item) 
+    private void StartedEditingBlock2(OverflyBlock2Item item)
     {
         _currentEditingItem = item;
         _showCustomAddress = false;
@@ -545,15 +546,15 @@
             {
                 var userId = await JSRuntime.GetUserId();
                 var request = new OverflyBlock2Request
-            {
-                IdStatus = item.IdStatus,
-                IdAddress = item.IdAddress,
-                AddressName = item.AddressName,
-                IdDistrict = item.IdDistrict,
-                Square = item.Square,
-                DateGetMaterials = item.DateGetMaterials,
-                UserId = userId
-            };
+                {
+                    IdStatus = item.IdStatus,
+                    IdAddress = item.IdAddress,
+                    AddressName = item.AddressName,
+                    IdDistrict = item.IdDistrict,
+                    Square = item.Square,
+                    DateGetMaterials = item.DateGetMaterials,
+                    UserId = userId
+                };
 
                 var response = await api.PostAsync<OverflyBlock2Item>("api/overfly/block-2", request);
 
@@ -609,7 +610,7 @@
 
 
 
-    private void StartedEditingBlock1(OverflyBlock1Item item) 
+    private void StartedEditingBlock1(OverflyBlock1Item item)
     {
         _currentEditingBlock1Item = item;
         _showCustomViolation = false;
@@ -665,48 +666,48 @@
             {
                 var userId = await JSRuntime.GetUserId();
                 var request = new OverflyBlock1Request
+                {
+                    IdDistrict = item.IdDistrict,
+                    IdAddress = item.IdAddress,
+                    QuantityNewViolation = item.QuantityNewViolation,
+                    IdViolation = item.IdViolation,
+                    ViolationName = item.ViolationName,
+                    DateDetection = item.DateDetection,
+                    UserId = userId
+                };
+
+                var response = await api.PostAsync<OverflyBlock1Item>("api/overfly/block-1", request);
+
+                if (response != null)
+                {
+                    Snackbar.Add("Запись добавлена", Severity.Success);
+                    _showCustomViolation = false;
+                    _currentEditingBlock1Item = null;
+
+                
+                    await LoadBlock1();
+                    StateHasChanged();
+                }
+            }
+            else
             {
-                IdDistrict = item.IdDistrict,
-                IdAddress = item.IdAddress,
-                QuantityNewViolation = item.QuantityNewViolation,
-                IdViolation = item.IdViolation,
-                ViolationName = item.ViolationName,
-                DateDetection = item.DateDetection,
-                UserId = userId
-            };
-            
-            var response = await api.PostAsync<OverflyBlock1Item>("api/overfly/block-1", request);
-            
-            if (response != null)
-            {
-                Snackbar.Add("Запись добавлена", Severity.Success);
+                await api.PutAsync<object>($"api/overfly/block-1/{item.Id}", item);
+                Snackbar.Add("Запись обновлена", Severity.Success);
                 _showCustomViolation = false;
                 _currentEditingBlock1Item = null;
-                
-                
+
+            
                 await LoadBlock1();
                 StateHasChanged();
             }
         }
-        else
+        catch (Exception ex)
         {
-            await api.PutAsync<object>($"api/overfly/block-1/{item.Id}", item);
-            Snackbar.Add("Запись обновлена", Severity.Success);
-            _showCustomViolation = false;
-            _currentEditingBlock1Item = null;
-            
-           
-            await LoadBlock1();
-            StateHasChanged();
+            Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
         }
+
+        return DataGridEditFormAction.Close;
     }
-    catch (Exception ex)
-    {
-        Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
-    }
-    
-    return DataGridEditFormAction.Close;
-}
 
     private async void DeleteBlock1(OverflyBlock1Item item)
     {

@@ -66,6 +66,7 @@
             <MudDataGrid T="ViolationDto"
                          Filterable="true"
                          Items="@Violations"
+                         SortMode="SortMode.Multiple"
                          ColumnResizeMode="ResizeMode.Column">
                 <Columns>
                     <PropertyColumn Property="x => x.Article" Title="Статья" />
@@ -88,6 +89,9 @@
                         </CellTemplate>
                     </TemplateColumn>
                 </Columns>
+                <PagerContent>
+                    <MudDataGridPager T="ViolationDto" />
+                </PagerContent>
             </MudDataGrid>
         </MudItem>
 
