@@ -68,11 +68,11 @@
                     <div style="flex-grow: 1;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <MudText Typo="Typo.body2"><b>@evt.UserName</b></MudText>
-                            <MudChip T="string" Size="Size.Small" Color="@GetActionColor(evt.Action)">
+                            <MudChip T="string" Size="Size.Small" Color="@GetActionColor(evt.Action)" Style="word-break: break-all;">
                                 @evt.Action
                             </MudChip>
                         </div>
-                        <MudText Typo="Typo.body2" Class="mt-1">@evt.Description</MudText>
+                        <MudText Typo="Typo.body2" Style="word-break: break-all;" Class="mt-1">@evt.Description</MudText>
                         <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
                             <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" Class="mr-1" />
                             @evt.CreatedAt.ToString("dd.MM.yyyy HH:mm")
@@ -91,14 +91,15 @@
     }
 
    
-    <MudFab Color="Color.Primary" Icon="@Icons.Material.Filled.Add"
+    <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
             OnClick="OpenAddEventDialog"
             Style="position: fixed; bottom: 20px; right: 20px;" />
 
     
-    <MudDialog @bind-Visible="_dialogVisible" Title="Добавить событие">
+    <MudDialog @bind-Visible="_dialogVisible">
         <DialogContent>
             <MudStack Spacing="3">
+                <MudText>Добавить событие</MudText>
                 <MudTextField @bind-Value="_newEventTitle" Label="Название" />
                 <MudTextField @bind-Value="_newEventDescription" Label="Описание" Lines="3" />
                 <MudDatePicker @bind-Date="_newEventDate" Label="Дата" />

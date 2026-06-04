@@ -178,6 +178,7 @@
         if (_formData.Violations.Count > 1)
         {
             _formData.Violations.RemoveAt(index);
+            StateHasChanged();
         }
     }
 
