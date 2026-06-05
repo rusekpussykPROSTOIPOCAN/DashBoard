@@ -110,7 +110,9 @@
                                 </MudSelect>
                             </MudItem>
                             <MudItem xs="12" sm="2">
-                                <MudText Class="my-5">Сумма: @chart.Sum.ToString("F2")</MudText>
+                                <MudTextField @bind-Value="chart.Sum"
+                                              Label="Сумма"
+                                              T="double" />
                             </MudItem>
                             <MudItem xs="12" sm="1" Class="d-flex justify-end">
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
@@ -328,7 +330,8 @@
 
     private void RecalculateSum(NewChartBlockDto chart)
     {
-        chart.Sum = chart.Details.Values.Sum();
+        if (chart.Details.Any())
+            chart.Sum = chart.Details.Values.Sum();
     }
 
     private void UpdateDetail(NewChartBlockDto chart, string oldKey, string newKey, double newValue)

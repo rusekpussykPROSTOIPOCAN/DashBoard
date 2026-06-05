@@ -370,11 +370,20 @@ namespace DashBoard.Api.Controllers
                     if (!string.IsNullOrEmpty(detailKey))
                     {
                         var item = chart.Items.FirstOrDefault(x => x.Key == detailKey);
+
                         if (item == null)
-                            chart.Items.Add(new UniversalChartItemV3 { Key = detailKey, Value = value });
+                            chart.Items.Add(new UniversalChartItemV3
+                            {
+                                Key = detailKey,
+                                Value = value
+                            });
                         else
                             item.Value += value;
 
+                        chart.Total += value;
+                    }
+                    else
+                    {
                         chart.Total += value;
                     }
                 }
