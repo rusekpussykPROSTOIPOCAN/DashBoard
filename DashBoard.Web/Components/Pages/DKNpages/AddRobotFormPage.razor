@@ -246,9 +246,11 @@
                         Title = chartDto.Title,
                         Type = chartDto.Type,
                         Details = new Dictionary<string, double>(chartDto.Details),
-                        NewDetail = new DetailItem()
+                        NewDetail = new DetailItem(),
+                        Sum = chartDto.Sum
                     };
-                    RecalculateSum(chart);
+                   
+
                     period.Charts.Add(chart);
                 }
                 
@@ -300,9 +302,10 @@
                     Title = chart.Title,
                     Type = chart.Type,
                     Details = new Dictionary<string, double>(chart.Details),
-                    NewDetail = new DetailItem()
+                    NewDetail = new DetailItem(),
+                    Sum = chart.Sum
                 };
-                RecalculateSum(newChart);
+              
                 newPeriod.Charts.Add(newChart);
             }
         }
