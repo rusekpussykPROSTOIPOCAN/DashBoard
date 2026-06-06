@@ -19,9 +19,7 @@
                 Войти
             </MudButton>
 
-            <MudText Class="mt-2">
-                Нет аккаунта? <MudLink Href="/register">Зарегистрироваться</MudLink>
-            </MudText>
+           
         </MudCardContent>
     </MudCard>
 </MudContainer>
@@ -44,7 +42,8 @@
                 await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('authToken', '{result.Token}')");
                 await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('userName', '{result.FullName}')");
                 await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('userId', '{result.UserId}')");
-
+                var rolesJson = JsonSerializer.Serialize(result.Roles);
+                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('roles', '{rolesJson}')");
                 Snackbar.Add($"Добро пожаловать, {result.FullName}!", Severity.Success);
                 Navigation.NavigateTo("/", forceLoad: true);
             }

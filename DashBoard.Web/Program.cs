@@ -1,7 +1,8 @@
 
 using DashBoard.Web.Components;
 using DashBoard.Web.Services;
-
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.JSInterop;
 using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,8 +17,15 @@ if (string.IsNullOrEmpty(apiUrl))
 }
 
 builder.Services.AddMudServices();
-
-
+builder.Services.AddAuthentication("Cookies")
+    .AddCookie("Cookies", options =>
+    {
+        options.LoginPath = "/login";
+        options.AccessDeniedPath = "/login";
+    });
+builder.Services.AddAuthorizationCore();
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
 builder.Services.AddHttpClient("ApiClient", c =>
 {
     c.BaseAddress = new Uri(apiUrl);
@@ -26,9 +34,9 @@ builder.Services.AddHttpClient("ApiClient", c =>
 builder.Services.AddScoped<ApiService>(sp =>
 {
     var clientFactory = sp.GetRequiredService<IHttpClientFactory>();
-    return new ApiService(clientFactory.CreateClient("ApiClient"));
+    var jsRuntime = sp.GetRequiredService<IJSRuntime>();
+    return new ApiService(clientFactory.CreateClient("ApiClient"), jsRuntime);
 });
-
 
 
 builder.Services.AddRazorComponents()

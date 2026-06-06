@@ -2,8 +2,7 @@
 using DashBoard.Lib.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Diagnostics;
-using EventLog = DashBoard.Lib.Models.EventLog;
+
 
 namespace DashBoard.Api.Controllers
 {

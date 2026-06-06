@@ -66,7 +66,7 @@
 </MudContainer>
 
 @code {
-    private List<ChatMessage> _messages = new();
+    private List<DashBoard.Lib.DTOs.ChatMessage> _messages = new();
     private string _newMessage = "";
     private Timer? _timer;
     private string _selectedFileName = "";
@@ -93,7 +93,7 @@
     private async Task LoadHistory()
     {
         var history = await api.GetAsync<List<ChatHistoryItem>>("api/chat/history");
-        _messages = history?.Select(h => new ChatMessage
+        _messages = history?.Select(h => new DashBoard.Lib.DTOs.ChatMessage
         {
             Id = h.Id,
             User = h.UserName,

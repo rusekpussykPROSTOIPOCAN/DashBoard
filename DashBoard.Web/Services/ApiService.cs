@@ -1,4 +1,6 @@
 ﻿using DashBoard.Lib.Models;
+using Microsoft.JSInterop;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using static System.Net.WebRequestMethods;
@@ -7,9 +9,26 @@ namespace DashBoard.Web.Services
     public class ApiService
     {
         private readonly HttpClient _httpClient;
-        public ApiService(HttpClient httpClient)
+        private readonly IJSRuntime _jsRuntime;
+
+        public ApiService(HttpClient httpClient, IJSRuntime jsRuntime)
         {
             _httpClient = httpClient;
+            _jsRuntime = jsRuntime;
+        }
+        public async Task AddAuthHeader()
+        {
+            try
+            {
+                var token = await _jsRuntime.InvokeAsync<string>("eval", "localStorage.getItem('authToken')");
+                if (!string.IsNullOrEmpty(token) && token != "null" && token != "undefined")
+                {
+                    token = token.Trim('"', '\'');
+                    _httpClient.DefaultRequestHeaders.Authorization =
+                        new AuthenticationHeaderValue("Bearer", token);
+                }
+            }
+            catch { }
         }
         public async Task<T> PutAsync<T>(string url, object data)
         {
@@ -19,6 +38,7 @@ namespace DashBoard.Web.Services
         }
         public async Task<T?> GetAsync<T>(string endpoint)
         {
+            await AddAuthHeader();
             return await _httpClient.GetFromJsonAsync<T>(endpoint);
         }
         public async Task DeleteAsync(string url)

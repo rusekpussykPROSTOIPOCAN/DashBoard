@@ -14,7 +14,6 @@ public partial class work_progress
     public DateTime? created_at { get; set; }
     public string? comment { get; set; }
 
-    
     public string? created_by_user_id { get; set; }
 
     [ForeignKey("id_sourse")]

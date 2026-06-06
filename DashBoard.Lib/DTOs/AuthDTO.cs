@@ -2,6 +2,13 @@
 
 namespace DashBoard.Lib.DTOs
 {
+    public class CreateUserRequest
+    {
+        public string Email { get; set; } = "";
+        public string FullName { get; set; } = "";
+        public string? Department { get; set; }
+        public string Role { get; set; } = "Viewer";
+    }
     public class LoginResult
     {
         public bool Success { get; set; }
@@ -50,10 +57,9 @@ namespace DashBoard.Lib.DTOs
         public string Email { get; set; }
     }
 
-    public class ResetPasswordRequset
+    public class AdminResetPasswordRequest
     {
         public string Email { get; set; } = "";
-        public string Token { get; set; } = "";
         public string NewPassword { get; set; } = "";
     }
 

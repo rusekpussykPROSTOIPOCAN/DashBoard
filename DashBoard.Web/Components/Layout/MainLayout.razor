@@ -1,4 +1,5 @@
-﻿@inherits LayoutComponentBase
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@inherits LayoutComponentBase
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 <MudThemeProvider @bind-IsDarkMode="_isDarkMode" Theme="_customTheme" />
@@ -23,7 +24,7 @@
             @if (!_isLoggedIn)
             {
                 <MudButton Href="/login" Size="Size.Small">Войти</MudButton>
-                <MudButton Href="/register" Size="Size.Small">Регистрация</MudButton>
+                
             }
             else
             {
@@ -58,7 +59,12 @@
                 <MudNavLink Href="/profile" Icon="@Icons.Material.Filled.Person">Профиль</MudNavLink>
                 <MudNavLink Href="/events" Icon="@Icons.Material.Filled.EventNote">Лента событий</MudNavLink>
                 <MudNavLink Href="/chat" Icon="@Icons.Material.Filled.Chat">Чат</MudNavLink>
-               
+                @if (_isAdmin)
+{
+    <MudNavLink Href="/admin/users" Icon="@Icons.Material.Filled.AdminPanelSettings">
+        Админ-панель
+    </MudNavLink>
+}
                 </MudNavMenu>
            
         </MudDrawer>
@@ -74,7 +80,7 @@
                 <MudButton Color="Color.Inherit" OnClick="@ToggleEndDrawer"
                            EndIcon="@(Rtl ? Icons.Material.Filled.West : Icons.Material.Filled.East)"
                            Size="Size.Small" Class="mx-2">
-                    Комьюнити
+                    Для сотрудников
                 </MudButton>
             </div>
         }
@@ -97,6 +103,10 @@
     private string? _userName;
     private bool _isLoggedIn;
     private bool _headerCollapsed;
+
+    private bool _isAdmin;
+    private bool _isEditor;
+    private string departament = "";
 
     private void ToggleHeader()
     {
@@ -127,7 +137,10 @@
 
     [CascadingParameter]
     public bool Rtl { get; set; }
-    
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -143,16 +156,19 @@
                 if (_isLoggedIn)
                 {
                     _userName = await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('userName')");
-
-                   
-                    if (NavigationManager.Uri.EndsWith("/") || NavigationManager.Uri.EndsWith("/index"))
-                    {
-                        NavigationManager.NavigateTo("/events");
-                    }
                 }
 
+                
+               
+               
+                var rolesJson = await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('roles')");
+                Console.WriteLine($"Roles from localStorage: {rolesJson}");
+                _isAdmin = rolesJson?.Contains("Администратор") == true || rolesJson?.Contains("Admin") == true;
+                Console.WriteLine($"_isAdmin: {_isAdmin}");
                 StateHasChanged();
             }
+          
+        
             catch { }
         }
     }

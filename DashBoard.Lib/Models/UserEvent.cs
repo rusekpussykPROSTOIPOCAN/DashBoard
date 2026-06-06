@@ -3,15 +3,19 @@ using System.Collections.Generic;
 
 namespace DashBoard.Lib.Models;
 
-public partial class ChatMessage
+public partial class UserEvent
 {
     public int Id { get; set; }
 
     public string? UserId { get; set; }
 
-    public string? UserName { get; set; }
+    public string Title { get; set; } = null!;
 
-    public string? Message { get; set; }
+    public string? Description { get; set; }
+
+    public DateTime EventDate { get; set; }
+
+    public string? Color { get; set; }
 
     public DateTime? CreatedAt { get; set; }
 }

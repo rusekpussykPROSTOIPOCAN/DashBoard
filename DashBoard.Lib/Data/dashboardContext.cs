@@ -34,12 +34,13 @@ public partial class dashboardContext : IdentityDbContext<ApplicationUser>
         }
     }
     public virtual DbSet<UserEvent> UserEvents { get; set; }
-    public virtual DbSet<EventLog> EventLogs { get; set; }
+    
     public virtual DbSet<address> addresses { get; set; }
 
     public virtual DbSet<article> articles { get; set; }
 
     public virtual DbSet<district> districts { get; set; }
+    public virtual DbSet<EventLog> EventLogs { get; set; }
 
     public virtual DbSet<employee> employees { get; set; }
 

@@ -1,0 +1,224 @@
+﻿@page "/admin/users"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Администратор")]
+@inject Services.ApiService api
+@inject IJSRuntime JSRuntime
+@inject ISnackbar Snackbar
+
+<MudDataGrid T="ApplicationUser" Items="@_users" Hover="true">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Пользователи</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenAddUserDialog">
+            Добавить пользователя
+        </MudButton>
+    </ToolBarContent>
+    <Columns>
+        <PropertyColumn Property="x => x.Email" Title="Email" />
+        <PropertyColumn Property="x => x.FullName" Title="ФИО" />
+        <TemplateColumn Title="Роль">
+            <CellTemplate>
+                <MudSelect T="string"
+                           Value="@_userRoles.GetValueOrDefault(context.Item.Id, "")"
+                           ValueChanged="@((string value) => ChangeRole(context.Item, value))"
+                           Dense="true">
+                    @foreach (var role in _roles)
+                    {
+                        <MudSelectItem Value="@role.Name">@role.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Действия">
+            <CellTemplate>
+                <div style="display: flex; gap: 4px;">
+                    <MudButton Size="Size.Small"
+                               OnClick="@(() => EditUser(context.Item))">
+                        Ред.
+                    </MudButton>
+                    <MudButton Size="Size.Small"
+                               OnClick="@(() => GeneratePassword(context.Item))">
+                        Пароль
+                    </MudButton>
+                    @if (_currentUserId != context.Item.Id)
+                    {
+                        <MudButton Size="Size.Small" Color="Color.Error"
+                                   OnClick="@(() => DeleteUser(context.Item))">
+                            Удалить
+                        </MudButton>
+                    }
+                </div>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+
+<MudDialog @bind-Visible="_dialogVisible" Title="Добавить пользователя">
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudTextField @bind-Value="_newEmail" Label="Email" />
+            <MudTextField @bind-Value="_newFullName" Label="ФИО" />
+            <MudSelect @bind-Value="_newDepartment" Label="Отдел">
+                @foreach (var dep in _departs)
+                {
+                    <MudSelectItem Value="dep">@dep</MudSelectItem>
+                }
+            </MudSelect>
+               
+
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _dialogVisible = false)">Отмена</MudButton>
+        <MudButton Color="Color.Primary" OnClick="CreateUser">Создать</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudDialog @bind-Visible="_editDialogVisible" Title="Редактировать пользователя">
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudTextField @bind-Value="_editEmail" Label="Email"/>
+            <MudTextField @bind-Value="_editFullName" Label="ФИО" />
+            <MudSelect @bind-Value="_editDepartment" Label="Отдел" T="string">
+                <MudSelectItem Value="@("ДКН")">ДКН</MudSelectItem>
+                <MudSelectItem Value="@("Аналитика")">Аналитика</MudSelectItem>
+            </MudSelect>
+            <MudSelect @bind-Value="_editRole" Label="Роль" T="string">
+                @foreach (var role in _roles)
+                {
+                    <MudSelectItem Value="@role.Name">@role.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _editDialogVisible = false)">Отмена</MudButton>
+        <MudButton Color="Color.Primary" OnClick="SaveUser">Сохранить</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<ApplicationUser> _users = new();
+    private List<AspNetRole> _roles = new();
+    private Dictionary<string, string> _userRoles = new();
+    private readonly string[] _departs = { "ДКН", "Аналитика" };
+    private bool _dialogVisible;
+    private string _newEmail = "";
+    private string _newFullName = "";
+    private string _newDepartment = "ДКН";
+    private string _newRole = "ЗРИТЕЛЬ";
+
+    private string? _currentUserId;
+    private bool _isAdmin;
+    private bool _editDialogVisible;
+    private string _editUserId = "";
+    private string _editEmail = "";
+    private string _editFullName = "";
+    private string _editDepartment = "";
+    private string _editRole = "";
+
+    private void EditUser(ApplicationUser user)
+    {
+        _editUserId = user.Id;
+        _editEmail = user.Email ?? "";
+        _editFullName = user.FullName ?? "";
+        _editDepartment = user.Department ?? "";
+        _editRole = _userRoles.GetValueOrDefault(user.Id, "Зритель");
+        _editDialogVisible = true;
+    }
+
+    private async Task SaveUser()
+    {
+        await api.PostAsync<object>("api/admin/update-user", new
+        {
+            userId = _editUserId,
+            fullName = _editFullName,
+            department = _editDepartment,
+            role = _editRole,
+            email = _editEmail
+           
+        });
+
+        _editDialogVisible = false;
+        Snackbar.Add("Пользователь обновлён", Severity.Success);
+        _users = await api.GetAsync<List<ApplicationUser>>("api/admin/users") ?? new();
+        StateHasChanged();
+    }
+
+    private async Task DeleteUser(ApplicationUser user)
+    {
+        await api.PostAsync<object>("api/admin/delete-user", new { userId = user.Id });
+        Snackbar.Add($"Пользователь {user.Email} удалён", Severity.Success);
+        _users = await api.GetAsync<List<ApplicationUser>>("api/admin/users") ?? new();
+        StateHasChanged();
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        _currentUserId = await JSRuntime.GetUserId();
+        _users = await api.GetAsync<List<ApplicationUser>>("api/admin/users") ?? new();
+        _roles = await api.GetAsync<List<AspNetRole>>("api/admin/roles") ?? new();
+
+        var rolesData = await api.GetAsync<Dictionary<string, string>>("api/admin/user-roles");
+        _userRoles = rolesData ?? new();
+    }
+
+    private void OpenAddUserDialog()
+    {
+        _newEmail = "";
+        _newFullName = "";
+        _newDepartment = "";
+        _newRole = "ЗРИТЕЛЬ";
+        _dialogVisible = true;
+    }
+
+    private async Task CreateUser()
+    {
+        if (string.IsNullOrWhiteSpace(_newEmail))
+        {
+            Snackbar.Add("Введите Email", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var result = await api.PostAsync<object>("api/admin/create-user", new
+            {
+                email = _newEmail,
+                fullName = _newFullName,
+                department = _newDepartment,
+                role = _newRole
+            });
+
+            _dialogVisible = false;
+            Snackbar.Add($"Пользователь {_newEmail} создан", Severity.Success);
+            _users = await api.GetAsync<List<ApplicationUser>>("api/admin/users") ?? new();
+            StateHasChanged();
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.Message.Contains("already taken"))
+                Snackbar.Add("Пользователь с таким Email уже существует", Severity.Error);
+            else
+                Snackbar.Add($"Ошибка: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ChangeRole(ApplicationUser user, string newRole)
+    {
+        await api.PostAsync<object>("api/admin/change-role", new { userId = user.Id, role = newRole });
+        Snackbar.Add($"Роль изменена на {newRole}", Severity.Success);
+        StateHasChanged();
+    }
+
+    private async Task GeneratePassword(ApplicationUser user)
+    {
+        var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$";
+        var password = new string(Enumerable.Range(0, 12).Select(_ => chars[Random.Shared.Next(chars.Length)]).ToArray());
+
+        await api.PostAsync<object>("api/admin/reset-password", new { email = user.Email, newPassword = password });
+        await api.PostAsync<object>("api/admin/send-password", new { email = user.Email, password = password });
+
+        Snackbar.Add($"Пароль отправлен на {user.Email}", Severity.Success);
+    }
+}
