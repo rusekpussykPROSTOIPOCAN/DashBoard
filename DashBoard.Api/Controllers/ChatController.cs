@@ -1,5 +1,6 @@
 ﻿using DashBoard.Api.Controllers;
 using DashBoard.Lib.Data;
+using DashBoard.Lib.DTOs;
 using DashBoard.Lib.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -97,9 +98,3 @@ public class ChatController : BaseController
     }
 }
 
-public class SendMessageRequest
-{
-    public string? UserId { get; set; }
-    public string? UserName { get; set; }
-    public string Message { get; set; } = "";
-}

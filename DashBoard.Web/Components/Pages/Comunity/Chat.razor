@@ -4,6 +4,7 @@
 @inject Services.ApiService api
 @using System.Threading
 @implements IDisposable
+@inject UserState UserState
 
 <MudContainer MaxWidth="MaxWidth.Medium">
     <MudText Typo="Typo.h4" Class="mb-4">Чат</MudText>
@@ -15,10 +16,13 @@
                 <div class="mb-2">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">@msg.Time @msg.User</MudText>
+                        @if (UserState.IsAdmin || UserState.UserName == msg.User)
+                        {
                         <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                        Size="Size.Small"
                                        Color="Color.Error"
                                        OnClick="@(() => DeleteMessage(msg.Id))" />
+                        }
                     </div>
                     @if (msg.IsFile)
                     {

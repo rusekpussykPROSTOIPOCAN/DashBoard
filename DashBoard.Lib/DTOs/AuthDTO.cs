@@ -2,6 +2,12 @@
 
 namespace DashBoard.Lib.DTOs
 {
+    public class ChangePasswordRequest
+    {
+        public string Email { get; set; } = "";
+        public string OldPassword { get; set; } = "";
+        public string NewPassword { get; set; } = "";
+    }
     public class CreateUserRequest
     {
         public string Email { get; set; } = "";
@@ -36,6 +42,7 @@ namespace DashBoard.Lib.DTOs
 
     public class AuthResponse
     {
+        public string? Department{ get; set; }
         public bool Success { get; set; }
         public string? Message { get; set; }
         public string? Token {  get; set; }

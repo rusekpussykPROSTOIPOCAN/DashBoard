@@ -4,6 +4,7 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject ISnackbar Snackbar
+@inject UserState UserState
 
 <PageTitle>@Departs.Robots</PageTitle>
 
@@ -46,8 +47,12 @@
                        OnClick="ExportRobots"> Экспорт данных
 
             </MudButton>
+            @if (UserState.IsAdmin || UserState.Department == "ДКН")
+            {
+                
             <MudFileUpload T="IBrowserFile" FilesChanged="HandleRobotsUpload" Accept=".xlsx,.xls">
                 <CustomContent>
+
                     <MudButton Variant="Variant.Outlined" Color="Color.Info"
                                OnClick="@context.OpenFilePickerAsync"
                                StartIcon="@Icons.Material.Filled.FileUpload" Size="Size.Large">
@@ -55,12 +60,10 @@
                     </MudButton>
                 </CustomContent>
             </MudFileUpload>
-
             <MudButton Href="/AddRobot" Variant="Variant.Filled" Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Add" Size="Size.Small">
                 Добавить
             </MudButton>
-
             @if (_idRobot.HasValue)
             {
                 <MudButton OnClick="() => EditRobot(_idRobot.Value)"
@@ -69,6 +72,10 @@
                     Ред.
                 </MudButton>
             }
+            }
+            
+
+
         </MudItem>
 
         <MudItem xs="12">

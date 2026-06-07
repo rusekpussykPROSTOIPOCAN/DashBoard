@@ -4,6 +4,7 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+
 <MudContainer MaxWidth="MaxWidth.ExtraLarge">
     <MudText Typo="Typo.h4" Class="mb-4">
         @(_isEdit ? "Редактирование задачи" : "Новая задача")
@@ -28,12 +29,12 @@
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="_formData.CompletePerimeter"
-                              Label="Выполнено периметр"
+                              Label="Выполненный периметр"
                               InputType="InputType.Number" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="_formData.RemainedPerimeter"
-                              Label="Осталось периметр"
+                              Label="Оставшийся периметр"
                               InputType="InputType.Number" />
             </MudItem>
         </MudGrid>
@@ -84,13 +85,15 @@
                 </MudGrid>
             </MudPaper>
         }
-        
+      
         <MudButton Variant="Variant.Outlined"
                    Color="Color.Info"
                    OnClick="AddViolation"
                    StartIcon="@Icons.Material.Filled.Add">
             Добавить нарушение
         </MudButton>
+       
+            
         
         <div class="d-flex gap-2 justify-end">
             <MudButton Variant="Variant.Outlined" OnClick="GoBack">Отмена</MudButton>

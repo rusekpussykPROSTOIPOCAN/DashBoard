@@ -48,6 +48,7 @@ namespace DashBoard.Web.Services
         }
         public async Task<T?> PostAsync<T>(string endpoint, object data)
         {
+            await AddAuthHeader();
             try
             {
                 var json = JsonSerializer.Serialize(data, new JsonSerializerOptions

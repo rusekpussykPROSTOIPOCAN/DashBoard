@@ -60,6 +60,7 @@ namespace DashBoard.Api.Controllers
         }
         
         [HttpPost("form")]
+        [Authorize]
         public async Task<IActionResult> CreateWorkProgress([FromBody] AddWorkProgressRequest request)
         {
             if (request == null)
@@ -73,7 +74,9 @@ namespace DashBoard.Api.Controllers
             {
              
                 int? actualSourceId = await GetOrCreateSourceAsync(request.IdSourse, request.CustomSourceName);
-
+                var userDepartment = User.FindFirst("Department")?.Value;
+                if (!User.IsInRole("Администратор") && userDepartment != "Аналитика")
+                    return Forbid();
                 if (!actualSourceId.HasValue)
                     return BadRequest("Не выбран источник");
 

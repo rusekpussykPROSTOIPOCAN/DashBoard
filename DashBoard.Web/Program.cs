@@ -1,4 +1,5 @@
 
+using DashBoard.Lib.DTOs;
 using DashBoard.Web.Components;
 using DashBoard.Web.Services;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -15,7 +16,6 @@ if (string.IsNullOrEmpty(apiUrl))
 {
     apiUrl = "https://localhost/api";
 }
-
 builder.Services.AddMudServices();
 builder.Services.AddAuthentication("Cookies")
     .AddCookie("Cookies", options =>
@@ -31,6 +31,7 @@ builder.Services.AddHttpClient("ApiClient", c =>
     c.BaseAddress = new Uri(apiUrl);
 });
 
+builder.Services.AddSingleton<UserState>();
 builder.Services.AddScoped<ApiService>(sp =>
 {
     var clientFactory = sp.GetRequiredService<IHttpClientFactory>();

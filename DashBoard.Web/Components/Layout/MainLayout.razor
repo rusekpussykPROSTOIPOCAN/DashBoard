@@ -2,6 +2,9 @@
 @inherits LayoutComponentBase
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
+@inject UserState UserState
+
+
 <MudThemeProvider @bind-IsDarkMode="_isDarkMode" Theme="_customTheme" />
 <MudPopoverProvider />
 <MudDialogProvider />
@@ -103,10 +106,12 @@
     private string? _userName;
     private bool _isLoggedIn;
     private bool _headerCollapsed;
-
+    private string _department = "";
     private bool _isAdmin;
     private bool _isEditor;
     private string departament = "";
+
+
 
     private void ToggleHeader()
     {
@@ -158,13 +163,21 @@
                     _userName = await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('userName')");
                 }
 
+                var role = await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('role')");
+                role = role?.Trim('"', '\'') ?? "";
+
+                var dept = await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('department')");
+                _department = dept?.Trim('"', '\'') ?? "";
+
+                var userId = await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('userId')");
+                userId = userId?.Trim('"', '\'') ?? "";
+
                 
+                UserState.SetUser(role, _department, userId, _userName ?? "");
+
                
-               
-                var rolesJson = await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('roles')");
-                Console.WriteLine($"Roles from localStorage: {rolesJson}");
-                _isAdmin = rolesJson?.Contains("Администратор") == true || rolesJson?.Contains("Admin") == true;
-                Console.WriteLine($"_isAdmin: {_isAdmin}");
+                _isAdmin = UserState.IsAdmin;
+
                 StateHasChanged();
             }
           

@@ -3,6 +3,7 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject Services.ApiService api
+@inject UserState UserState
 
 <MudContainer MaxWidth="MaxWidth.Medium">
     <MudText Typo="Typo.h4" Class="mb-4">Профиль</MudText>
@@ -97,8 +98,8 @@
 
         try
         {
-            var data = new { oldPassword = _oldPassword, newPassword = _newPassword };
-            await api.PostAsync<object>("api/auth/change-password", data);  // ← Используем api
+            var data = new { oldPassword = _oldPassword, newPassword = _newPassword, email = _email};
+            await api.PostAsync<object>("api/auth/change-password", data);  
             Snackbar.Add("Пароль успешно изменён!", Severity.Success);
             _changePasswordVisible = false;
         }

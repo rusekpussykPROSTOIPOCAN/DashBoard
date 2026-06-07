@@ -1,5 +1,6 @@
 ﻿using DashBoard.Api.Controllers;
 using DashBoard.Lib.Data;
+using DashBoard.Lib.DTOs;
 using DashBoard.Lib.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -64,11 +65,3 @@ public class CalendarController : BaseController
     }
 }
 
-public class AddCalendarEventRequest
-{
-    public string? UserId { get; set; }
-    public string Title { get; set; } = "";
-    public string? Description { get; set; }
-    public string EventDate { get; set; } = "";  
-    public string? Color { get; set; }
-}

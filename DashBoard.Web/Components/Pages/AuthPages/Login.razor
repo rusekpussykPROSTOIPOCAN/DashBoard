@@ -3,8 +3,7 @@
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 @inject IJSRuntime JSRuntime
-@using System.Text
-@using System.Text.Json
+
 
 <MudContainer MaxWidth="MaxWidth.Small">
     <MudCard Class="mt-10 pa-5">
@@ -39,11 +38,13 @@
 
             if (result != null && !string.IsNullOrEmpty(result.Token))
             {
+                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('department', '{result?.Department}')");
+                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('role', '{result?.Roles?.FirstOrDefault()}')");
                 await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('authToken', '{result.Token}')");
                 await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('userName', '{result.FullName}')");
                 await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('userId', '{result.UserId}')");
-                var rolesJson = JsonSerializer.Serialize(result.Roles);
-                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('roles', '{rolesJson}')");
+                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('email', '{result.Email}')");
+                
                 Snackbar.Add($"Добро пожаловать, {result.FullName}!", Severity.Success);
                 Navigation.NavigateTo("/", forceLoad: true);
             }
@@ -59,6 +60,8 @@
         public bool Success { get; set; }
         public string? Token { get; set; }
         public string? Email { get; set; }
+        public string? Department { get; set; }
+
         public string? FullName { get; set; }
         public string? UserId { get; set; }
         public List<string>? Roles { get; set; }

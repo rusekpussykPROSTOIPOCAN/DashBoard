@@ -2,7 +2,7 @@
 @inject Services.ApiService api
 @inject ISnackbar Snackbar
 @inject IJSRuntime JSRuntime
-
+@inject UserState UserState
 <PageTitle>@Departs.overflights</PageTitle>
 <MudContainer MaxWidth="MaxWidth.Large">
 
@@ -31,8 +31,11 @@
             <MudMenuItem OnClick="@(() => ExportOverfly("block2"))">Экспорт заявок</MudMenuItem>
             <MudMenuItem OnClick="@(() => ExportOverfly("block1"))">Экспорт нарушений</MudMenuItem>
         </MudMenu>
-        
-        <MudButton Href="/overflight/edit">Обновить данные</MudButton>
+            @if (UserState.IsAdmin || UserState.Department == "ДКН")
+            {
+                
+            <MudButton Href="/overflight/edit">Обновить данные</MudButton>
+            }
     </MudItem>
     <MudItem xs="12" sm="6">
         <MudText Class="my-5" Align="Align.Center">@ResForBodyPage.tokens</MudText>

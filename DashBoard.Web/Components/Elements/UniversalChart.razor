@@ -2,6 +2,7 @@
 @inject Services.ApiService api
 @using NormalizeRobots
 @inject ISnackbar Snackbar
+@inject UserState UserState
 
 <MudPaper Class="pa-4">
 
@@ -12,7 +13,11 @@
     else
     {
         <MudStack Spacing="2">
+            @if (UserState.IsAdmin || UserState.Department == "ДКН")
+            {
+                
             <AddItemsToChart Items="Data.Items" robotId="Data.RobotId" block="@Data.Block" OnSave="HandleSave" DataResponse="Data" />
+            }
             <MudText><b>Робот:</b> @Data.RobotName</MudText>
             <MudText><b>Задача: </b>@NormalizeRobots.NormalizerRobots.Block(Data.Block)</MudText>
             <MudText><b>Сумма:</b> @Data.Total</MudText>
@@ -41,10 +46,12 @@
                           ChartSeries="_values.AsChartDataSet()"
                           Height="@($"{height}px")" />
             }
-            
+            @if (UserState.IsAdmin || UserState.Department == "ДКН")
+            {
             <MudIconButton OnClick="() => DeleteRobot(Data.RobotId)"
                            Icon="@Icons.Material.Filled.Delete"
                            Disabled="_isDeleting" />
+            }
         </MudStack>
     }
 

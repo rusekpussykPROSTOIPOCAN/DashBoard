@@ -1,4 +1,5 @@
 ﻿using DashBoard.Lib.Data;
+using DashBoard.Lib.DTOs;
 using DashBoard.Lib.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +19,7 @@ namespace DashBoard.Api.Controllers
         public async Task<IActionResult> GetEvents([FromQuery] string? date = null)
         {
             var systemEvents = await _dashboard.Set<EventLog>()
-                .Select(e => new EventItemDto
+                .Select(e => new Lib.DTOs.EventItemDto
                 {
                     UserName = e.User != null ? e.User.FullName : "Система",
                     Action = e.Action,
@@ -28,7 +29,7 @@ namespace DashBoard.Api.Controllers
                 .ToListAsync();
 
             var userEvents = await _dashboard.Set<UserEvent>()
-     .Select(e => new EventItemDto
+     .Select(e => new Lib.DTOs.EventItemDto
      {
          UserName = _dashboard.Users.Where(u => u.Id == e.UserId).Select(u => u.FullName).FirstOrDefault() ?? "Пользователь",
          Action = "Событие",

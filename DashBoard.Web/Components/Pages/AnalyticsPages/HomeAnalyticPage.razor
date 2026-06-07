@@ -7,6 +7,7 @@
 @inject IJSRuntime JSRuntime   
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
+@inject UserState UserState
 
 <MudContainer Fixed="true" MaxWidth="MaxWidth.Large">
     <MudGrid>
@@ -27,13 +28,16 @@
         </MudItem>
 
         <MudItem md="6" sm="6" Class="d-flex justify-sm-end justify-center pr-sm-4 gap-2">
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.AddTask"
-                       OnClick="OpenAddTaskDialog"
-                       Class="my-1">
-                Новая задача
-            </MudButton>
+            @if (UserState.IsAdmin || UserState.Department == "Аналитика")
+            {
+                <MudButton Variant="Variant.Filled"
+                Color="Color.Primary"
+                StartIcon="@Icons.Material.Filled.AddTask"
+                OnClick="OpenAddTaskDialog"
+                Class="my-1">
+                    Новая задача
+                </MudButton>
+            }
             <MudButton Variant="Variant.Outlined"
                Color="Color.Info"
                StartIcon="@Icons.Material.Filled.FileDownload"
@@ -44,7 +48,7 @@
         </MudItem>
 
         <MudItem sm="3" xs="6">
-            <MudText>Всего: <b>@(_data?.DailyStats?.Sum(x => x.AllPerimeter) ?? 0)</b></MudText>
+            <MudText>Периметер работ: <b>@(_data?.DailyStats?.Sum(x => x.AllPerimeter) ?? 0)</b></MudText>
         </MudItem>
         <MudItem sm="3" xs="6">
             <MudText>Выполнено: <b>@(_data?.DailyStats?.Sum(x => x.CompletePerimeter) ?? 0)</b></MudText>
@@ -53,6 +57,8 @@
             <MudText>В работе: <b>@(_data?.DailyStats?.Sum(x => x.RemainedPerimeter) ?? 0)</b></MudText>
         </MudItem>
         <MudItem sm="3" xs="6">
+            @if (UserState.IsAdmin || UserState.Department == "Аналитика")
+            {
             <MudButton Variant="Variant.Outlined"
                        Color="Color.Secondary"
                        Size="Size.Small"
@@ -60,6 +66,7 @@
                        FullWidth="true">
                 + Нарушение
             </MudButton>
+            }
         </MudItem>
 
         <MudItem xs="12" md="9">
@@ -77,14 +84,17 @@
                     <TemplateColumn Title="Действия" CellClass="d-flex justify-center">
                         <CellTemplate>
                             <div class="d-flex gap-1">
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                               Color="Color.Primary"
-                                               Size="Size.Small"
-                                               OnClick="@(() => EditWorkProgress(context.Item.WorkProgressId))" />
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                               Color="Color.Error"
-                                               Size="Size.Small"
-                                               OnClick="@(() => DeleteWorkProgress(context.Item.WorkProgressId))" />
+                                @if (UserState.IsAdmin || UserState.Department == "Аналитика")
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                    Color="Color.Primary"
+                                    Size="Size.Small"
+                                    OnClick="@(() => EditWorkProgress(context.Item.WorkProgressId))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                    Color="Color.Error"
+                                    Size="Size.Small"
+                                    OnClick="@(() => DeleteWorkProgress(context.Item.WorkProgressId))" />
+                                }
                             </div>
                         </CellTemplate>
                     </TemplateColumn>

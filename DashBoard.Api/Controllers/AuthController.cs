@@ -57,6 +57,7 @@ namespace DashBoard.Api.Controllers
                 user.Email,
                 user.Department,
                 user.CreatedAt,
+
                 Roles = roles
             });
         }
@@ -116,7 +117,8 @@ namespace DashBoard.Api.Controllers
                 Email = user.Email,
                 UserId = user.Id,
                 FullName = user.FullName,
-                Roles = roles.ToList()
+                Roles = roles.ToList(),
+                Department = user.Department,
             });
         }
         [HttpGet("confirm-email")]
@@ -162,16 +164,16 @@ namespace DashBoard.Api.Controllers
             var result = await _userManager.ChangePasswordAsync(user, request.OldPassword, request.NewPassword);
 
             if (result.Succeeded)
-                return Ok(new { message = "Пароль изменён" });
+            {
 
+            await _emailService.SendEmailAsync(user.Email, "Ваш пароль был изменен!",
+               $"<p>Сообщите администратору, если это были не вы</a></p>");
+                return Ok(new { message = "Пароль изменён" });
+            }
             return BadRequest(string.Join(", ", result.Errors.Select(e => e.Description)));
         }
 
-        public class ChangePasswordRequest
-        {
-            public string OldPassword { get; set; } = "";
-            public string NewPassword { get; set; } = "";
-        }
+        
         private string GenerateJwtToken(ApplicationUser user, IList<string> roles)
         {
             var claims = new List<Claim>
