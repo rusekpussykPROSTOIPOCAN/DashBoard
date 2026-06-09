@@ -1,5 +1,4 @@
 ﻿using DashBoard.Api.Service;
-using DashBoard.Api.Service;
 using DashBoard.Lib.Data;
 using DashBoard.Lib.DTOs;
 using DashBoard.Lib.Models;
@@ -23,6 +22,21 @@ namespace DashBoard.Api.Controllers
         {
             _userManager = userManager;
             _emailService = emailService;
+        }
+        [HttpGet("employees")]
+        public async Task<IActionResult> GetEmployees()
+        {
+            var employees = await _userManager.Users
+                .Where(u => u.Email != "admin@dashboard.ru") 
+                .Select(u => new
+                {
+                    u.Id,
+                    u.FullName,
+                    u.Department,
+                    u.Email
+                })
+                .ToListAsync();
+            return Ok(employees);
         }
         [HttpGet("users")]
         [Authorize(Roles = "Администратор")]

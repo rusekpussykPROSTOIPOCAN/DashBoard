@@ -1,0 +1,143 @@
+﻿@page "/my-tasks"
+@inject Services.ApiService api
+@inject UserState UserState
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudText Typo="Typo.h4" Class="mb-4">
+        @(UserState.IsAdmin || UserState.Role == "Начальник" ? "Задачи сотрудников" : "Мои задачи")
+    </MudText>
+
+   
+    @if (UserState.IsAdmin || UserState.Role == "Начальник")
+    {
+        <MudGrid Class="mb-4">
+            <MudItem xs="12" md="4">
+                <MudSelect Value="_selectedUserId"
+                           ValueChanged="@((string v) => OnSelectedUserIdChanged(v))"
+                           Label="Сотрудник" T="string">
+                         
+                    @foreach (var emp in _employees)
+                    {
+                        <MudSelectItem Value="@emp.Id">@emp.FullName (@emp.Department)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+    }
+
+    <MudGrid Class="mb-4">
+        <MudItem xs="4">
+            <MudCard Class="pa-3">
+                <MudText Typo="Typo.h6" Align="Align.Center">Всего задач</MudText>
+                <MudText Typo="Typo.h4" Align="Align.Center" Color="Color.Primary">@_stats?.TotalTasks</MudText>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="4">
+            <MudCard Class="pa-3">
+                <MudText Typo="Typo.h6" Align="Align.Center">В работе</MudText>
+                <MudText Typo="Typo.h4" Align="Align.Center" Color="Color.Warning">@_stats?.InProgressTasks</MudText>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="4">
+            <MudCard Class="pa-3">
+                <MudText Typo="Typo.h6" Align="Align.Center">Выполнено</MudText>
+                <MudText Typo="Typo.h4" Align="Align.Center" Color="Color.Success">@_stats?.CompletedTasks</MudText>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+   
+    <MudTable Items="@_tasks" Hover="true">
+        <HeaderContent>
+            <MudTh>Название</MudTh>
+            <MudTh>Описание</MudTh>
+            @if (UserState.IsAdmin || UserState.Role == "Начальник")
+            {
+                <MudTh>Кем выдано</MudTh>
+            }
+            <MudTh>Статус</MudTh>
+            <MudTh>Дата</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Title</MudTd>
+            <MudTd>@context.Description</MudTd>
+            @if (UserState.IsAdmin || UserState.Role == "Начальник")
+            {
+                <MudTd>@context.AssignedUserName</MudTd>
+            }
+            <MudTd>
+                <MudSelect T="string" Value="@context.Status"
+                           ValueChanged="@((string v) => UpdateStatus(context, v))" Dense="true">
+                    <MudSelectItem Value="@("new")">Новая</MudSelectItem>
+                    <MudSelectItem Value="@("in_progress")">В работе</MudSelectItem>
+                    <MudSelectItem Value="@("done")">Выполнена</MudSelectItem>
+                </MudSelect>
+            </MudTd>
+            <MudTd>@context.CreatedAt.ToString("dd.MM.yyyy")</MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<TaskItem> _tasks = new();
+    private TaskStats? _stats;
+    private string _selectedUserId = "";
+    private List<EmployeeItem> _employees = new();
+    private async Task OnSelectedUserIdChanged(string value)
+    {
+        _selectedUserId = value;
+        await LoadTasks();
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserState.IsAdmin || UserState.Role == "Начальник")
+        {
+            _employees = await api.GetAsync<List<EmployeeItem>>("api/admin/employees") ?? new();
+        }
+        await LoadTasks();
+    }
+
+    
+
+    private async Task LoadTasks()
+    {
+        var userId = (UserState.IsAdmin || UserState.Role == "Начальник") && !string.IsNullOrEmpty(_selectedUserId)
+            ? _selectedUserId
+            : UserState.UserId;
+
+        _tasks = await api.GetAsync<List<TaskItem>>($"api/tasks/my?userId={userId}") ?? new();
+        _stats = await api.GetAsync<TaskStats>($"api/tasks/stats?userId={userId}");
+        StateHasChanged();
+    }
+
+    private async Task UpdateStatus(TaskItem task, string newStatus)
+    {
+        await api.PostAsync<object>("api/tasks/update-status", new { taskId = task.Id, status = newStatus });
+        task.Status = newStatus;
+        await LoadTasks();
+    }
+
+    public class TaskItem
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Status { get; set; } = "new";
+        public string? AssignedUserName { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class TaskStats
+    {
+        public int TotalTasks { get; set; }
+        public int InProgressTasks { get; set; }
+        public int CompletedTasks { get; set; }
+    }
+
+    public class EmployeeItem
+    {
+        public string Id { get; set; } = "";
+        public string FullName { get; set; } = "";
+        public string Department { get; set; } = "";
+    }
+}

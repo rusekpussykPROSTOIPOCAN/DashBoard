@@ -1,9 +1,9 @@
 ﻿@page "/events"
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
-@using System.Text
 @inject Services.ApiService api
-@using System.Text.Json
+@inject UserState UserState
+
 
 <MudContainer MaxWidth="MaxWidth.Large">
     <MudText Typo="Typo.h4" Class="mb-4">Лента событий</MudText>
@@ -22,9 +22,7 @@
         <MudItem xs="12" md="2">
             <MudButton Variant="Variant.Filled" OnClick="ApplyFilters" Size="Size.Small">Показать</MudButton>
         </MudItem>
-        <MudItem xs="12" md="2">
-            <MudButton Variant="Variant.Outlined" OnClick="ClearFilters" Size="Size.Small">Сбросить</MudButton>
-        </MudItem>
+       
     </MudGrid>
 
    
@@ -82,32 +80,40 @@
             </MudCard>
         }
         
-       
-       @*  <div class="d-flex justify-center mt-4">
-            <MudPagination Count="@((_filteredEvents.Count + _pageSize - 1) / _pageSize)" 
-                           Selected="@((_currentPage))"
-                           SelectedChanged="OnPageChanged" />
-        </div> *@
+   
     }
 
-   
+    @if (UserState.IsAdmin || UserState.Role == "Начальник")
+    {
+        
     <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
             OnClick="OpenAddEventDialog"
             Style="position: fixed; bottom: 20px; right: 20px;" />
+    }
 
     
     <MudDialog @bind-Visible="_dialogVisible">
         <DialogContent>
             <MudStack Spacing="3">
-                <MudText>Добавить событие</MudText>
+                <MudText Typo="Typo.h6">Новая задача</MudText>
                 <MudTextField @bind-Value="_newEventTitle" Label="Название" />
                 <MudTextField @bind-Value="_newEventDescription" Label="Описание" Lines="3" />
                 <MudDatePicker @bind-Date="_newEventDate" Label="Дата" />
+
+                @if (UserState.IsAdmin || UserState.Role == "Начальник")
+                {
+                    <MudSelect @bind-Value="_assignedUserId" Label="Назначить сотрудника" T="string">
+                        @foreach (var user in _employees)
+                        {
+                            <MudSelectItem Value="@user.Id">@user.FullName (@user.Department)</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
             </MudStack>
         </DialogContent>
         <DialogActions>
             <MudButton OnClick="() => _dialogVisible = false">Отмена</MudButton>
-            <MudButton Color="Color.Primary" OnClick="SaveEvent">Добавить</MudButton>
+            <MudButton Color="Color.Primary" OnClick="SaveEvent">Создать задачу</MudButton>
         </DialogActions>
     </MudDialog>
 </MudContainer>
@@ -124,11 +130,13 @@
     private DateTime? _newEventDate = DateTime.Today;
     private int _pageSize = 10;
     private int _currentPage = 1;
-
+    private string _assignedUserId = "";
+    private List<EmployeeItem> _employees = new();
     protected override async Task OnInitializedAsync()
-    {
-        await LoadEvents();
-    }
+{
+    _employees = await api.GetAsync<List<EmployeeItem>>("api/admin/employees") ?? new();
+    await LoadEvents();
+}
 
     private async Task LoadEvents()
     {
@@ -196,6 +204,7 @@
                 userId = userId,
                 title = _newEventTitle,
                 description = _newEventDescription,
+                assignedToUserId = _assignedUserId,
                 eventDate = (_newEventDate ?? DateTime.Today).ToString("yyyy-MM-dd")  
             };
             await api.PostAsync<object>("api/calendar/events", request);
@@ -209,6 +218,7 @@
     {
         public string UserName { get; set; } = "";
         public string Action { get; set; } = "";
+
         public string Description { get; set; } = "";
         public DateTime CreatedAt { get; set; }
     }

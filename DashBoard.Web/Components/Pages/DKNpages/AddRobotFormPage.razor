@@ -103,9 +103,9 @@
                                            @bind-Value="chart.Type"
                                            T="ChartTypeRobot"
                                            Disabled="@isLoading">
-                                    @foreach (var type in Enum.GetValues(typeof(ChartTypeRobot)))
+                                    @foreach (var type in _chartTypeNames)
                                     {
-                                        <MudSelectItem Value="@((ChartTypeRobot)type)">@type.ToString()</MudSelectItem>
+                                        <MudSelectItem Value="@type.Key">@type.Value</MudSelectItem>
                                     }
                                 </MudSelect>
                             </MudItem>
@@ -208,6 +208,14 @@
  
     private bool isEditMode = false;
     private bool isLoading = false;
+
+    private Dictionary<ChartTypeRobot, string> _chartTypeNames = new()
+{
+    { ChartTypeRobot.Bar, "Столбчатая" },
+    { ChartTypeRobot.Pie, "Круговая" },
+    { ChartTypeRobot.Line, "Линейная" },
+    { ChartTypeRobot.Table, "Таблица" }
+};
 
     protected override async Task OnInitializedAsync()
     {

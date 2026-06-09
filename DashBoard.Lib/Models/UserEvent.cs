@@ -18,4 +18,6 @@ public partial class UserEvent
     public string? Color { get; set; }
 
     public DateTime? CreatedAt { get; set; }
+    public string? AssignedToUserId { get; set; }
+    public string? Status { get; set; } = "new";
 }

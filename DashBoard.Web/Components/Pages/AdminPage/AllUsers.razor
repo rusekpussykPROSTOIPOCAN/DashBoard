@@ -107,7 +107,7 @@
     private string _newEmail = "";
     private string _newFullName = "";
     private string _newDepartment = "ДКН";
-    private string _newRole = "ЗРИТЕЛЬ";
+    private string _newRole = "СОТРУДНИК";
 
     private string? _currentUserId;
     private bool _isAdmin;
@@ -124,7 +124,7 @@
         _editEmail = user.Email ?? "";
         _editFullName = user.FullName ?? "";
         _editDepartment = user.Department ?? "";
-        _editRole = _userRoles.GetValueOrDefault(user.Id, "Зритель");
+        _editRole = _userRoles.GetValueOrDefault(user.Id, "Сотрудник");
         _editDialogVisible = true;
     }
 
@@ -168,7 +168,7 @@
         _newEmail = "";
         _newFullName = "";
         _newDepartment = "";
-        _newRole = "ЗРИТЕЛЬ";
+        _newRole = "СОТРУДНИК";
         _dialogVisible = true;
     }
 

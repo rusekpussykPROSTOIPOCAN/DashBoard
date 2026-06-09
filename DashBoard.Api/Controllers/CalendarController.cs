@@ -37,9 +37,10 @@ public class CalendarController : BaseController
         {
             UserId = request.UserId,
             Title = request.Title,
-            Description = $"{request.Title} : {request.Description}",
+            Description = $"{request.Title}: {request.Description}",
             EventDate = DateTime.SpecifyKind(eventDate, DateTimeKind.Utc),
-            Color = request.Color ?? "#1976d2",
+            AssignedToUserId = request.AssignedToUserId,
+            Status = "new", 
             CreatedAt = DateTime.UtcNow
         };
 

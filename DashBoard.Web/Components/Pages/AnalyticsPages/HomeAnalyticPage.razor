@@ -323,25 +323,22 @@
                             }
                         </MudItem>
                         <MudItem xs="6" md="2">
-                            <MudTextField Value="_newTask.Violations[index].ViolationsWeek"
-                                          ValueChanged="@((int value) => UpdateViolationField(index, "ViolationsWeek", value))"
-                                          Label="За неделю"
-                                          InputType="InputType.Number"
-                                          Immediate="true" />
+        <MudTextField @bind-Value="_newViolation.ViolationsWeek"
+                      Label="За неделю"
+                      InputType="InputType.Number"
+                      OnBlur="RecalculateViolationSingle" />
                         </MudItem>
                         <MudItem xs="6" md="2">
-                            <MudTextField Value="_newTask.Violations[index].NewViolations"
-                                          ValueChanged="@((int value) => UpdateViolationField(index, "NewViolations", value))"
-                                          Label="Новых"
-                                          InputType="InputType.Number"
-                                          Immediate="true" />
+        <MudTextField @bind-Value="_newViolation.NewViolations"
+                      Label="Новых"
+                      InputType="InputType.Number"
+                      OnBlur="RecalculateViolationSingle" />
                         </MudItem>
                         <MudItem xs="6" md="2">
-                            <MudTextField Value="_newTask.Violations[index].OldViolations"
-                                          ValueChanged="@((int value) => UpdateViolationField(index, "OldViolations", value))"
-                                          Label="Старых"
-                                          InputType="InputType.Number"
-                                          Immediate="true" />
+        <MudTextField @bind-Value="_newViolation.OldViolations"
+                      Label="Старых"
+                      InputType="InputType.Number"
+                      OnBlur="RecalculateViolationSingle" />
                         </MudItem>
                         <MudItem xs="6" md="1" Class="d-flex align-end">
                             <MudIconButton Icon="@Icons.Material.Filled.RemoveCircle"
@@ -404,7 +401,16 @@
         _quarter = null;
         StateHasChanged();
     }
-
+    private void RecalculateViolationSingle()
+    {
+        if (_newViolation.ViolationsWeek > 0 && _newViolation.NewViolations > 0)
+            _newViolation.OldViolations = _newViolation.ViolationsWeek - _newViolation.NewViolations;
+        else if (_newViolation.ViolationsWeek > 0 && _newViolation.OldViolations > 0)
+            _newViolation.NewViolations = _newViolation.ViolationsWeek - _newViolation.OldViolations;
+        else if (_newViolation.NewViolations > 0 && _newViolation.OldViolations > 0)
+            _newViolation.ViolationsWeek = _newViolation.NewViolations + _newViolation.OldViolations;
+        StateHasChanged();
+    }
     private async Task OnDateRangeChanged(DateRange? range)
     {
         _dateRange = range;
@@ -580,6 +586,7 @@ public class ExportResult
 
         var result = await api.GetAsync<AnaliticPageDTO>(url);
         _data = result;
+        
         Violations = _data?.Violations ?? new List<ViolationDto>();
         StateHasChanged();
     }

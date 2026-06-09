@@ -6,6 +6,12 @@ using System.Threading.Tasks;
 
 namespace DashBoard.Lib.DTOs
 {
+    public class EmployeeItem
+    {
+        public string Id { get; set; } = "";
+        public string FullName { get; set; } = "";
+        public string Department { get; set; } = "";
+    }
     public class UserState
     {
         public bool IsAdmin { get; private set; }

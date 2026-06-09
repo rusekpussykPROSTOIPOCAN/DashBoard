@@ -25,17 +25,20 @@
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="_formData.AllPerimeter"
                               Label="Всего периметр"
-                              InputType="InputType.Number" />
+                              InputType="InputType.Number"
+                              OnBlur="RecalculatePerimeter" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="_formData.CompletePerimeter"
                               Label="Выполненный периметр"
-                              InputType="InputType.Number" />
+                              InputType="InputType.Number"
+                              OnBlur="RecalculatePerimeter" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="_formData.RemainedPerimeter"
                               Label="Оставшийся периметр"
-                              InputType="InputType.Number" />
+                              InputType="InputType.Number"
+                              OnBlur="RecalculatePerimeter" />
             </MudItem>
         </MudGrid>
         
@@ -64,12 +67,14 @@
                     <MudItem xs="6" md="2">
                         <MudTextField @bind-Value="_formData.Violations[index].ViolationsWeek"
                                       Label="За неделю"
-                                      InputType="InputType.Number" />
+                                      InputType="InputType.Number"
+                                      OnBlur="@(() => RecalculateViolation(index))" />
                     </MudItem>
                     <MudItem xs="6" md="2">
                         <MudTextField @bind-Value="_formData.Violations[index].NewViolations"
                                       Label="Новых"
-                                      InputType="InputType.Number" />
+                                      InputType="InputType.Number"
+                                      OnBlur="@(() => RecalculateViolation(index))" />
                     </MudItem>
                     <MudItem xs="6" md="2">
                         <MudTextField @bind-Value="_formData.Violations[index].OldViolations"
@@ -77,10 +82,10 @@
                                       InputType="InputType.Number" />
                     </MudItem>
                     <MudItem xs="6" md="1" Class="d-flex align-end">
-                        <MudIconButton Icon="@Icons.Material.Filled.RemoveCircle"
-                                       Color="Color.Error"
-                                       Size="Size.Small"
-                                       OnClick="@(() => RemoveViolation(index))" />
+                        <MudTextField @bind-Value="_formData.Violations[index].OldViolations"
+                                      Label="Старых"
+                                      InputType="InputType.Number"
+                                      OnBlur="@(() => RecalculateViolation(index))" />
                     </MudItem>
                 </MudGrid>
             </MudPaper>
@@ -110,6 +115,42 @@
     
     private List<(int Id, string Name)> _articles = new();
     private List<(int Id, string Name)> _sources = new();
+
+    private void RecalculatePerimeter()
+    {
+        if (_formData.AllPerimeter > 0 && _formData.CompletePerimeter > 0)
+        {
+            _formData.RemainedPerimeter = _formData.AllPerimeter - _formData.CompletePerimeter;
+        }
+        else if (_formData.AllPerimeter > 0 && _formData.RemainedPerimeter > 0)
+        {
+            _formData.CompletePerimeter = _formData.AllPerimeter - _formData.RemainedPerimeter;
+        }
+        else if (_formData.CompletePerimeter > 0 && _formData.RemainedPerimeter > 0)
+        {
+            _formData.AllPerimeter = _formData.CompletePerimeter + _formData.RemainedPerimeter;
+        }
+        StateHasChanged();
+    }
+
+    private void RecalculateViolation(int index)
+    {
+        var v = _formData.Violations[index];
+
+        if (v.ViolationsWeek > 0 && v.NewViolations > 0)
+        {
+            v.OldViolations = v.ViolationsWeek - v.NewViolations;
+        }
+        else if (v.ViolationsWeek > 0 && v.OldViolations > 0)
+        {
+            v.NewViolations = v.ViolationsWeek - v.OldViolations;
+        }
+        else if (v.NewViolations > 0 && v.OldViolations > 0)
+        {
+            v.ViolationsWeek = v.NewViolations + v.OldViolations;
+        }
+        StateHasChanged();
+    }
 
     protected override async Task OnInitializedAsync()
     {
