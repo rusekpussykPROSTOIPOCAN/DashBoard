@@ -138,12 +138,22 @@
                             <MudDatePicker @bind-Date="context.Item.DateGetMaterialsDateTime" Label="Дата" DateFormat="yyyy-MM-dd" />
                         </EditTemplate>
                     </TemplateColumn>
-                    <TemplateColumn CellClass="d-flex justify-end">
+                    <PropertyColumn Property="x => x.Id" Title="" IsEditable="false">
                         <CellTemplate>
-                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
-                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteBlock2(context.Item))" />
+                            <div style="display: flex; justify-content: flex-end; gap: 4px;">
+                                <MudIconButton Size="Size.Small"
+                                               Icon="@Icons.Material.Outlined.Edit"
+                                               OnClick="@context.Actions.StartEditingItemAsync"
+                                               Color="Color.Primary"
+                                               Style="margin: 0;" />
+                                <MudIconButton Size="Size.Small"
+                                               Icon="@Icons.Material.Outlined.Delete"
+                                               OnClick="@(() => DeleteBlock2(context.Item))"
+                                               Color="Color.Error"
+                                               Style="margin: 0;" />
+                            </div>
                         </CellTemplate>
-                    </TemplateColumn>
+                    </PropertyColumn>
                 </Columns>
                 <PagerContent>
                     <MudDataGridPager T="OverflyBlock2Item" />
@@ -250,7 +260,7 @@
                             <MudDatePicker @bind-Date="context.Item.DateDetectionDateTime" Label="Дата" DateFormat="yyyy-MM-dd" />
                         </EditTemplate>
                     </TemplateColumn>
-                    <TemplateColumn CellClass="d-flex justify-end">
+                    <TemplateColumn Title="Действия" CellClass="d-flex justify-end">
                         <CellTemplate>
                             <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
                             <MudIconButton Size="Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="@(() => DeleteBlock1(context.Item))" />
