@@ -20,7 +20,7 @@ namespace DashBoard.Web.Services
         {
             try
             {
-                var token = await _jsRuntime.InvokeAsync<string>("eval", "localStorage.getItem('authToken')");
+                var token = await _jsRuntime.InvokeAsync<string>("eval", "sessionStorage.getItem('authToken')");
                 if (!string.IsNullOrEmpty(token) && token != "null" && token != "undefined")
                 {
                     token = token.Trim('"', '\'');

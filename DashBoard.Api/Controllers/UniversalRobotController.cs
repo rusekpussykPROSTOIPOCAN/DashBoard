@@ -125,7 +125,10 @@ namespace DashBoard.Api.Controllers
 
                         sumData[robotName][monthLabel][blockName] = blockSum;
 
-                        JsonElement detailsEl;
+                 
+                        bool hasDetails = false;
+                        JsonElement detailsEl = default;
+
                         if ((blockValue.TryGetProperty("детали", out detailsEl) ||
                              blockValue.TryGetProperty("Details", out detailsEl)) &&
                             detailsEl.ValueKind == JsonValueKind.Object)
@@ -136,8 +139,20 @@ namespace DashBoard.Api.Controllers
                             foreach (var detail in detailsEl.EnumerateObject())
                             {
                                 if (detail.Value.ValueKind == JsonValueKind.Number)
+                                {
                                     robotData[robotName][monthLabel][blockName][detail.Name] = detail.Value.GetInt32();
+                                    hasDetails = true;
+                                }
                             }
+                        }
+
+
+                        if(!hasDetails && blockSum > 0) 
+{
+                            if (!robotData[robotName][monthLabel].ContainsKey(blockName))
+                                robotData[robotName][monthLabel][blockName] = new Dictionary<string, int>();
+
+                            robotData[robotName][monthLabel][blockName]["Сумма"] = blockSum;
                         }
                     }
                 }
@@ -178,8 +193,13 @@ namespace DashBoard.Api.Controllers
                         row++;
                         continue;
                     }
-
-                    foreach (var blockName in allBlocksSet.OrderBy(b => b))
+                    var robotBlocks = new HashSet<string>();
+                    foreach (var monthData in robotData[rName])
+                    {
+                        foreach (var blockName in monthData.Value.Keys)
+                            robotBlocks.Add(blockName);
+                    }
+                    foreach (var blockName in robotBlocks.OrderBy(b => b))
                     {
                         sheet.Cell(row, 1).Value = blockName;
                         sheet.Cell(row, 1).Style.Font.Italic = true;

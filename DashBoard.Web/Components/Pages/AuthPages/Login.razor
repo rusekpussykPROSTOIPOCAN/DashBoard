@@ -38,15 +38,28 @@
 
             if (result != null && !string.IsNullOrEmpty(result.Token))
             {
-                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('department', '{result?.Department}')");
-                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('role', '{result?.Roles?.FirstOrDefault()}')");
-                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('authToken', '{result.Token}')");
-                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('userName', '{result.FullName}')");
-                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('userId', '{result.UserId}')");
-                await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('email', '{result.Email}')");
-                
+                await JSRuntime.InvokeVoidAsync("eval", $"sessionStorage.setItem('department', '{result?.Department}')");
+                await JSRuntime.InvokeVoidAsync("eval", $"sessionStorage.setItem('role', '{result?.Roles?.FirstOrDefault()}')");
+                await JSRuntime.InvokeVoidAsync("eval", $"sessionStorage.setItem('authToken', '{result.Token}')");
+                await JSRuntime.InvokeVoidAsync("eval", $"sessionStorage.setItem('userName', '{result.FullName}')");
+                await JSRuntime.InvokeVoidAsync("eval", $"sessionStorage.setItem('userId', '{result.UserId}')");
+                await JSRuntime.InvokeVoidAsync("eval", $"sessionStorage.setItem('email', '{result.Email}')");
+
                 Snackbar.Add($"Добро пожаловать, {result.FullName}!", Severity.Success);
-                Navigation.NavigateTo("/", forceLoad: true);
+                if(result.Roles.FirstOrDefault() == "Сотрудник")
+                {
+                    
+                Navigation.NavigateTo("/my-tasks", forceLoad: true);
+                }
+                if(result.Roles.FirstOrDefault() == "Руководитель")
+                {
+                            Navigation.NavigateTo("/events", forceLoad: true);
+                }
+                if(result.Roles.FirstOrDefault() == "Администратор")
+                {
+                    Navigation.NavigateTo("/events", forceLoad: true);
+                }
+                
             }
         }
         catch

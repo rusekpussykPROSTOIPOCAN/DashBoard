@@ -83,7 +83,7 @@
    
     }
 
-    @if (UserState.IsAdmin || UserState.Role == "Начальник")
+    @if (UserState.IsAdmin || UserState.Role == "Руководитель")
     {
         
     <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
@@ -100,7 +100,7 @@
                 <MudTextField @bind-Value="_newEventDescription" Label="Описание" Lines="3" />
                 <MudDatePicker @bind-Date="_newEventDate" Label="Дата" />
 
-                @if (UserState.IsAdmin || UserState.Role == "Начальник")
+                @if (UserState.IsAdmin || UserState.Role == "Руководитель")
                 {
                     <MudSelect @bind-Value="_assignedUserId" Label="Назначить сотрудника" T="string">
                         @foreach (var user in _employees)

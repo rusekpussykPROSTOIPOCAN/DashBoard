@@ -3,7 +3,7 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @inject UserState UserState
-
+@inject AuthenticationStateProvider AuthProvider
 
 <MudThemeProvider @bind-IsDarkMode="_isDarkMode" Theme="_customTheme" />
 <MudPopoverProvider />
@@ -138,7 +138,7 @@
     private async Task ToggleTheme()
     {
         _isDarkMode = !_isDarkMode;
-        await JSRuntime.InvokeVoidAsync("eval", $"localStorage.setItem('theme', '{(_isDarkMode ? "dark" : "light")}')");
+        await JSRuntime.InvokeVoidAsync("eval", $"sessionStorage.setItem('theme', '{(_isDarkMode ? "dark" : "light")}')");
     }
 
     [CascadingParameter]
@@ -153,24 +153,24 @@
         {
             try
             {
-                var savedTheme = await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('theme')");
+                var savedTheme = await JSRuntime.InvokeAsync<string>("eval", "sessionStorage.getItem('theme')");
                 _isDarkMode = savedTheme == "dark";
 
-                var token = await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('authToken')");
+                var token = await JSRuntime.InvokeAsync<string>("eval", "sessionStorage.getItem('authToken')");
                 _isLoggedIn = !string.IsNullOrEmpty(token);
 
-                if (_isLoggedIn)
-                {
-                    _userName = await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('userName')");
+                if (_isLoggedIn){
+                   
+                    _userName = await JSRuntime.InvokeAsync<string>("eval", "sessionStorage.getItem('userName')");
                 }
 
-                var role = await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('role')");
+                var role = await JSRuntime.InvokeAsync<string>("eval", "sessionStorage.getItem('role')");
                 role = role?.Trim('"', '\'') ?? "";
 
-                var dept = await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('department')");
+                var dept = await JSRuntime.InvokeAsync<string>("eval", "sessionStorage.getItem('department')");
                 _department = dept?.Trim('"', '\'') ?? "";
 
-                var userId = await JSRuntime.InvokeAsync<string>("eval", "localStorage.getItem('userId')");
+                var userId = await JSRuntime.InvokeAsync<string>("eval", "sessionStorage.getItem('userId')");
                 userId = userId?.Trim('"', '\'') ?? "";
 
                 
@@ -178,7 +178,8 @@
 
                
                 _isAdmin = UserState.IsAdmin;
-
+                var customAuth = (CustomAuthStateProvider)AuthProvider;
+                customAuth.NotifyAuthenticationChanged();
                 StateHasChanged();
             }
           
@@ -189,7 +190,7 @@
 
     private async Task Logout()
     {
-        await JSRuntime.InvokeVoidAsync("eval", "localStorage.removeItem('authToken'); localStorage.removeItem('userName')");
+        await JSRuntime.InvokeVoidAsync("eval", "sessionStorage.removeItem('authToken'); sessionStorage.removeItem('userName')");
         _isLoggedIn = false;
         _userName = null;
         NavigationManager.NavigateTo("/", forceLoad: true);

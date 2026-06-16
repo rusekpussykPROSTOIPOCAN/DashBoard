@@ -4,11 +4,11 @@
 
 <MudContainer MaxWidth="MaxWidth.Large">
     <MudText Typo="Typo.h4" Class="mb-4">
-        @(UserState.IsAdmin || UserState.Role == "Начальник" ? "Задачи сотрудников" : "Мои задачи")
+        @(UserState.IsAdmin || UserState.Role == "Руководитель" ? "Задачи сотрудников" : "Мои задачи")
     </MudText>
 
    
-    @if (UserState.IsAdmin || UserState.Role == "Начальник")
+    @if (UserState.IsAdmin || UserState.Role == "Руководитель")
     {
         <MudGrid Class="mb-4">
             <MudItem xs="12" md="4">
@@ -51,7 +51,7 @@
         <HeaderContent>
             <MudTh>Название</MudTh>
             <MudTh>Описание</MudTh>
-            @if (UserState.IsAdmin || UserState.Role == "Начальник")
+            @if (UserState.IsAdmin || UserState.Role == "Руководитель")
             {
                 <MudTh>Кем выдано</MudTh>
             }
@@ -61,7 +61,7 @@
         <RowTemplate>
             <MudTd>@context.Title</MudTd>
             <MudTd>@context.Description</MudTd>
-            @if (UserState.IsAdmin || UserState.Role == "Начальник")
+            @if (UserState.IsAdmin || UserState.Role == "Руководитель")
             {
                 <MudTd>@context.AssignedUserName</MudTd>
             }
@@ -90,7 +90,7 @@
     }
     protected override async Task OnInitializedAsync()
     {
-        if (UserState.IsAdmin || UserState.Role == "Начальник")
+        if (UserState.IsAdmin || UserState.Role == "Руководитель")
         {
             _employees = await api.GetAsync<List<EmployeeItem>>("api/admin/employees") ?? new();
         }
@@ -101,7 +101,7 @@
 
     private async Task LoadTasks()
     {
-        var userId = (UserState.IsAdmin || UserState.Role == "Начальник") && !string.IsNullOrEmpty(_selectedUserId)
+        var userId = (UserState.IsAdmin || UserState.Role == "Руководитель") && !string.IsNullOrEmpty(_selectedUserId)
             ? _selectedUserId
             : UserState.UserId;
 

@@ -14,11 +14,12 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
+        await Task.Delay(200);
         var identity = new ClaimsIdentity();
 
         try
         {
-            var token = await _js.InvokeAsync<string>("eval", "localStorage.getItem('authToken')");
+            var token = await _js.InvokeAsync<string>("eval", "sessionStorage.getItem('authToken')");
 
             if (!string.IsNullOrEmpty(token))
             {

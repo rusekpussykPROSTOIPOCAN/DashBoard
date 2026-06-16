@@ -15,7 +15,7 @@ namespace DashBoard.Lib.Models
     public static class AppRoles
     {
         public const string Admin = "Администратор";
-        public const string Editor = "Начальник";
+        public const string Editor = "Руководитель";
         public const string Viewer = "Сотрудник";
     }
 }
