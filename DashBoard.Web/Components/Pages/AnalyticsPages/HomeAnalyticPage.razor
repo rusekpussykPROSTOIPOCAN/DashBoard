@@ -323,22 +323,25 @@
                             }
                         </MudItem>
                         <MudItem xs="6" md="2">
-        <MudTextField @bind-Value="_newViolation.ViolationsWeek"
+        <MudTextField Value="_newTask.Violations[index].ViolationsWeek"
+                      ValueChanged="@((int value) => UpdateViolationField(index, "ViolationsWeek", value))"
                       Label="За неделю"
                       InputType="InputType.Number"
-                      OnBlur="RecalculateViolationSingle" />
+                      Immediate="true" />
                         </MudItem>
                         <MudItem xs="6" md="2">
-        <MudTextField @bind-Value="_newViolation.NewViolations"
+        <MudTextField Value="_newTask.Violations[index].NewViolations"
+                      ValueChanged="@((int value) => UpdateViolationField(index, "NewViolations", value))"
                       Label="Новых"
                       InputType="InputType.Number"
-                      OnBlur="RecalculateViolationSingle" />
+                      Immediate="true" />
                         </MudItem>
                         <MudItem xs="6" md="2">
-        <MudTextField @bind-Value="_newViolation.OldViolations"
+        <MudTextField Value="_newTask.Violations[index].OldViolations"
+                      ValueChanged="@((int value) => UpdateViolationField(index, "OldViolations", value))"
                       Label="Старых"
                       InputType="InputType.Number"
-                      OnBlur="RecalculateViolationSingle" />
+                      Immediate="true" />
                         </MudItem>
                         <MudItem xs="6" md="1" Class="d-flex align-end">
                             <MudIconButton Icon="@Icons.Material.Filled.RemoveCircle"

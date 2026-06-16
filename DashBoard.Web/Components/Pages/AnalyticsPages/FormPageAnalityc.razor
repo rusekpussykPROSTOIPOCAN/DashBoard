@@ -76,16 +76,18 @@
                                       InputType="InputType.Number"
                                       OnBlur="@(() => RecalculateViolation(index))" />
                     </MudItem>
-                    <MudItem xs="6" md="2">
-                        <MudTextField @bind-Value="_formData.Violations[index].OldViolations"
-                                      Label="Старых"
-                                      InputType="InputType.Number" />
-                    </MudItem>
+                  
                     <MudItem xs="6" md="1" Class="d-flex align-end">
                         <MudTextField @bind-Value="_formData.Violations[index].OldViolations"
                                       Label="Старых"
                                       InputType="InputType.Number"
                                       OnBlur="@(() => RecalculateViolation(index))" />
+                    </MudItem>
+                    <MudItem xs="6" md="1" Class="d-flex align-end">
+                        <MudIconButton Icon="@Icons.Material.Filled.RemoveCircle"
+                                       Color="Color.Error"
+                                       Size="Size.Small"
+                                       OnClick="@(() => RemoveViolation(index))" />
                     </MudItem>
                 </MudGrid>
             </MudPaper>
