@@ -22,11 +22,17 @@ namespace DashBoard.Api.Controllers
 
                 if (robot == null)
                     return NotFound($"Робот с ID {id} не найден");
+                var analityc = await _dashboard.robots_analitics.Where(x => x.idrobots == id).ToListAsync();
+                if(analityc != null)
+                {
+                    _dashboard.robots_analitics.RemoveRange(analityc);
+                }
+               var robots =  await _dashboard.robots.FindAsync(id);
+                if(robots != null)
+                _dashboard.robots.Remove(robots);
 
+               await _dashboard.SaveChangesAsync();
                 
-                await _dashboard.robots_analitics
-                    .Where(a => a.idrobots == id)
-                    .ExecuteUpdateAsync(s => s.SetProperty(a => a.isactive, false));
 
                 return Ok(new { message = "Робот успешно удален" });
             }
